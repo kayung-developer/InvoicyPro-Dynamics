@@ -1,0 +1,2397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self' https://*.firebaseio.com https://*.googleapis.com https://unpkg.com; script-src 'self' https://unpkg.com https://www.gstatic.com 'unsafe-eval' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; font-src 'self' https: data:; connect-src 'self' https://*.firebaseio.com wss://*.firebaseio.com https://*.googleapis.com https://securetoken.googleapis.com;">
+    <title>InvoicyPro Dynamics - Advanced Invoicing Platform</title>
+    <script src="https://unpkg.com/react@18/umd/react.development.js" crossorigin></script>
+    <script src="https://unpkg.com/react-dom@18/umd/react-dom.development.js" crossorigin></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+    <!-- Firebase SDKs (using compat libraries for easier integration in this single-file setup) -->
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-auth-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-firestore-compat.js"></script>
+    <!-- Add other Firebase services like storage if needed:
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-storage-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.1/firebase-functions-compat.js"></script>
+    -->
+
+    <style>
+        :root {
+            --primary-color: #3B82F6; /* Blue 500 */
+            --primary-color-dark: #2563EB; /* Blue 600 */
+            --primary-color-light: #60A5FA; /* Blue 400 */
+            --secondary-color: #10B981; /* Emerald 500 */
+            --secondary-color-dark: #059669; /* Emerald 600 */
+            --background-color: #F3F4F6; /* Gray 100 */
+            --surface-color: #FFFFFF;
+            --text-color: #1F2937; /* Gray 800 */
+            --text-muted-color: #6B7280; /* Gray 500 */
+            --text-light-color: #9CA3AF; /* Gray 400 */
+            --border-color: #D1D5DB; /* Gray 300 */
+            --danger-color: #EF4444; /* Red 500 */
+            --danger-color-dark: #DC2626; /* Red 600 */
+            --warning-color: #F59E0B; /* Amber 500 */
+            --success-color: var(--secondary-color);
+            --font-family: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", sans-serif;
+            --border-radius: 0.5rem; /* 8px */
+            --border-radius-sm: 0.25rem; /* 4px */
+            --box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+            --box-shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+        }
+
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+        body {
+            font-family: var(--font-family);
+            background-color: var(--background-color);
+            color: var(--text-color);
+            line-height: 1.6;
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        #root { display: flex; flex-direction: column; min-height: 100vh; }
+        .container { width: 100%; max-width: 1320px; margin: 0 auto; padding: 0 1.5rem; }
+
+        .app-header {
+            background: linear-gradient(to right, var(--primary-color), var(--primary-color-light));
+            color: white; padding: 1rem 0; box-shadow: var(--box-shadow);
+            position: sticky; top: 0; z-index: 1000; /* Increased z-index */
+        }
+        .app-header .container { display: flex; justify-content: space-between; align-items: center; }
+        .app-header__logo { font-size: 1.75rem; font-weight: 700; letter-spacing: -0.5px; }
+        .app-header__nav { display: flex; align-items: center; gap: 0.75rem; }
+        .app-header__nav .nav-link { color: white; text-decoration: none; padding: 0.5rem 0.75rem; border-radius: var(--border-radius-sm); transition: background-color 0.2s; }
+        .app-header__nav .nav-link:hover, .app-header__nav .nav-link.active { background-color: rgba(255,255,255,0.15); }
+        .app-header__nav .button { margin-left: 0.5rem; background-color: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.3); color: white; }
+        .app-header__nav .button:hover { background-color: rgba(255,255,255,0.2); }
+        .app-header__user-info { color: #E0E7FF; font-size: 0.9rem; margin-right: 0.5rem; }
+
+        .main-content { flex-grow: 1; padding: 2.5rem 0; }
+        .page-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+        .page-title { font-size: 1.875rem; font-weight: 600; color: var(--text-color); }
+
+        .card {
+            background-color: var(--surface-color); border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow); padding: 2rem; margin-bottom: 2rem;
+        }
+        .card-header { padding-bottom: 1rem; margin-bottom: 1rem; border-bottom: 1px solid var(--border-color); }
+        .card-title { font-size: 1.25rem; font-weight: 500; }
+
+        .button {
+            display: inline-flex; align-items: center; justify-content: center;
+            padding: 0.625rem 1.25rem; border: 1px solid transparent; border-radius: var(--border-radius-sm);
+            font-weight: 500; font-size: 0.95rem; cursor: pointer;
+            transition: all 0.2s ease-in-out; text-decoration: none; white-space: nowrap;
+        }
+        .button:focus-visible { outline: 2px solid var(--primary-color-dark); outline-offset: 2px; }
+        .button:disabled { opacity: 0.6; cursor: not-allowed; }
+
+        .button--primary { background-color: var(--primary-color); color: white; }
+        .button--primary:hover:not(:disabled) { background-color: var(--primary-color-dark); }
+        .button--secondary { background-color: var(--secondary-color); color: white; }
+        .button--secondary:hover:not(:disabled) { background-color: var(--secondary-color-dark); }
+        .button--danger { background-color: var(--danger-color); color: white; }
+        .button--danger:hover:not(:disabled) { background-color: var(--danger-color-dark); }
+        .button--outline { background-color: transparent; color: var(--primary-color); border-color: var(--primary-color); }
+        .button--outline:hover:not(:disabled) { background-color: var(--primary-color); color: white; }
+        .button--subtle { background-color: transparent; color: var(--text-muted-color); border-color: transparent; }
+        .button--subtle:hover:not(:disabled) { background-color: var(--background-color); color: var(--text-color); }
+        .button--lg { padding: 0.875rem 1.75rem; font-size: 1.05rem; }
+        .button--icon { padding: 0.5rem; line-height:1; }
+        .button--link { background: none; border: none; color: var(--primary-color); padding: 0; text-decoration: underline; cursor: pointer; }
+        .button--link:hover { color: var(--primary-color-dark); }
+
+
+        .form-group { margin-bottom: 1.25rem; }
+        .form-group label { display: block; font-weight: 500; margin-bottom: 0.5rem; color: var(--text-color); font-size: 0.9rem; }
+        .form-control, .form-select {
+            display: block; width: 100%; padding: 0.75rem 1rem; font-size: 1rem;
+            border: 1px solid var(--border-color); border-radius: var(--border-radius-sm);
+            transition: border-color 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+            background-color: var(--surface-color); color: var(--text-color);
+        }
+        .form-control:focus, .form-select:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2); }
+        .form-control.is-invalid, .form-select.is-invalid { border-color: var(--danger-color); }
+        .form-control::placeholder { color: var(--text-light-color); }
+        textarea.form-control { min-height: 100px; resize: vertical; }
+        .form-select { appearance: none; background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3e%3cpath fill='none' stroke='%23343a40' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M2 5l6 6 6-6'/%3e%3c/svg%3e"); background-repeat: no-repeat; background-position: right 0.75rem center; background-size: 16px 12px; padding-right: 2.5rem; }
+        .form-check { display: flex; align-items: center; gap: 0.5rem; }
+        .form-check-input { width: 1.25em; height: 1.25em; margin-top:0; }
+        .invalid-feedback { display: block; color: var(--danger-color); font-size: 0.875em; margin-top: 0.25rem; }
+
+
+        .table-responsive { overflow-x: auto; }
+        .table { width: 100%; border-collapse: collapse; margin-bottom: 1rem; }
+        .table th, .table td { padding: 0.75rem 1rem; text-align: left; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
+        .table thead th { background-color: #F9FAFB; font-weight: 500; color: var(--text-muted-color); text-transform: uppercase; font-size: 0.8rem; letter-spacing: 0.05em; border-top: 1px solid var(--border-color); }
+        .table tbody tr:hover { background-color: var(--background-color); }
+        .table td .button { padding: 0.375rem 0.75rem; font-size: 0.875rem; }
+        .table td .button + .button { margin-left: 0.25rem; }
+
+
+        .modal-backdrop {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background-color: rgba(17, 24, 39, 0.7);
+            display: flex; justify-content: center; align-items: center;
+            z-index: 1050; padding: 1rem; animation: fadeIn 0.2s ease-out;
+        }
+        @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+        .modal-content {
+            background-color: var(--surface-color); padding: 2rem; border-radius: var(--border-radius);
+            box-shadow: var(--box-shadow-lg); width: 100%; max-width: 700px; max-height: 90vh; overflow-y: auto;
+            animation: scaleUp 0.2s ease-out;
+        }
+        @keyframes scaleUp { from { transform: scale(0.98) translateY(10px); opacity: 0; } to { transform: scale(1) translateY(0px); opacity: 1; } }
+        .modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; padding-bottom: 1rem; border-bottom: 1px solid var(--border-color); }
+        .modal-title { font-size: 1.5rem; font-weight: 600; color: var(--text-color); }
+        .modal-close-button { background: none; border: none; font-size: 1.75rem; cursor: pointer; color: var(--text-muted-color); line-height: 1; }
+        .modal-close-button:hover { color: var(--text-color); }
+        .modal-footer { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 0.75rem; }
+
+
+        .status-paid { color: var(--success-color); font-weight: 500; }
+        .status-pending { color: var(--warning-color); font-weight: 500; }
+        .status-overdue { color: var(--danger-color); font-weight: 500; }
+        .status-draft { color: var(--text-light-color); font-weight: 500; }
+        .status-cancelled { color: var(--text-muted-color); font-weight: 500; text-decoration: line-through; }
+
+        .text-center { text-align: center; }
+        .mt-1 { margin-top: 0.25rem; } .mt-2 { margin-top: 0.5rem; } .mt-3 { margin-top: 1rem; } .mt-4 { margin-top: 1.5rem; } .mt-5 { margin-top: 2rem; }
+        .mb-1 { margin-bottom: 0.25rem; } .mb-2 { margin-bottom: 0.5rem; } .mb-3 { margin-bottom: 1rem; } .mb-4 { margin-bottom: 1.5rem; } .mb-5 { margin-bottom: 2rem; }
+        
+        .d-flex { display: flex; } .justify-between { justify-content: space-between; } .justify-center { justify-content: center; } .justify-end { justify-content: flex-end; }
+        .align-center { align-items: center; } .align-start { align-items: flex-start; }
+        .gap-1 { gap: 0.5rem; } .gap-2 { gap: 1rem; } .gap-3 { gap: 1.5rem; } .gap-4 { gap: 2rem; }
+
+        .alert { padding: 1rem 1.25rem; margin-bottom: 1.5rem; border: 1px solid transparent; border-radius: var(--border-radius-sm); font-size: 0.95rem; }
+        .alert-danger { color: var(--danger-color-dark); background-color: #FEE2E2; border-color: #FECACA; } 
+        .alert-success { color: var(--secondary-color-dark); background-color: #D1FAE5; border-color: #A7F3D0; }
+        .alert-info { color: var(--primary-color-dark); background-color: #DBEAFE; border-color: #BFDBFE; }
+        .alert-warning { color: #92400E; background-color: #FEF3C7; border-color: #FDE68A; }
+
+        .form-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 1.5rem; }
+        .invoice-item-row { display: grid; grid-template-columns: minmax(0,3fr) minmax(0,1fr) minmax(0,1.5fr) minmax(0,0.75fr) auto; gap: 0.75rem; align-items: flex-end; margin-bottom: 0.75rem; }
+        .invoice-item-row input { margin-bottom: 0 !important; }
+        .invoice-item-row .form-group { margin-bottom: 0; }
+
+        .dashboard-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem; margin-bottom: 2.5rem; }
+        .summary-card { background-color: var(--surface-color); padding: 1.5rem; border-radius: var(--border-radius); box-shadow: var(--box-shadow); text-align: center;}
+        .summary-card__title { font-size: 0.9rem; color: var(--text-muted-color); margin-bottom: 0.5rem; text-transform: uppercase; }
+        .summary-card__value { font-size: 1.875rem; font-weight: 600; color: var(--primary-color); }
+        .summary-card__value.paid { color: var(--success-color); }
+        .summary-card__value.overdue { color: var(--danger-color); }
+
+        .filters { margin-bottom: 1.5rem; padding: 1.25rem; background-color: var(--surface-color); border-radius: var(--border-radius); box-shadow: var(--box-shadow); display: flex; gap: 1rem; align-items: center; flex-wrap: wrap; }
+        .filters .form-group { margin-bottom: 0; flex-grow: 1; }
+
+        .spinner {
+            border: 4px solid var(--primary-color-light); width: 36px; height: 36px;
+            border-radius: 50%; border-left-color: var(--primary-color);
+            animation: spin 1s ease infinite; margin: 2rem auto;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        .button .spinner-inline {
+            border: 2px solid rgba(255,255,255,0.3); width: 16px; height: 16px;
+            border-left-color: white; margin-right: 0.5rem; margin-left: -0.25rem; animation: spin 1s ease infinite;
+        }
+        .button--outline .spinner-inline { border-left-color: var(--primary-color); border-color: var(--text-light-color); }
+
+        .global-loader {
+            position: fixed; top: 0; left: 0; width: 100%; height: 4px;
+            background-color: var(--primary-color-light); z-index: 9999;
+            overflow: hidden;
+        }
+        .global-loader::before {
+            content: ''; display: block; position: absolute; left: -100%; width: 100%; height: 100%;
+            background-color: var(--primary-color); animation: globalLoad 1.5s linear infinite;
+        }
+        @keyframes globalLoad { 0% { left: -100%; width: 100%; } 50% { left: 0; width: 75%; } 100% { left: 100%; width: 50%; } }
+
+
+        .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border-width: 0; }
+
+        .app-footer { text-align: center; padding: 2rem 0; border-top: 1px solid var(--border-color); color: var(--text-muted-color); background-color: var(--surface-color); }
+        .app-footer p { margin-bottom: 0.5rem; }
+        .app-footer a { color: var(--primary-color); text-decoration: none; }
+        .app-footer a:hover { text-decoration: underline; }
+
+        .skeleton { animation: pulse 1.5s cubic-bezier(0.4, 0, 0.6, 1) infinite; background-color: var(--background-color); }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.5; } }
+        .skeleton-text { height: 1em; margin-bottom: 0.5em; border-radius: var(--border-radius-sm); }
+        .skeleton-text:last-child { margin-bottom: 0; }
+        .skeleton-title { width: 60%; height: 1.5em; margin-bottom: 1em; }
+        .skeleton-button { width: 100px; height: 38px; border-radius: var(--border-radius-sm); }
+        .skeleton-card { padding: 2rem; }
+        .skeleton-list-item { height: 70px; margin-bottom: 1rem; border-radius: var(--border-radius); }
+
+        .tabs { border-bottom: 1px solid var(--border-color); margin-bottom: 1.5rem; }
+        .tabs ul { list-style: none; display: flex; gap: 0.25rem; }
+        .tabs li button {
+            padding: 0.75rem 1.25rem; border: none; background: none; cursor: pointer;
+            color: var(--text-muted-color); font-weight: 500; border-bottom: 2px solid transparent;
+            transition: color 0.2s, border-color 0.2s;
+        }
+        .tabs li button.active, .tabs li button:hover { color: var(--primary-color); border-bottom-color: var(--primary-color); }
+
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState, useEffect, createContext, useContext, memo, useCallback, useReducer, useMemo, useRef } = React;
+
+        // --- FIREBASE SETUP ---
+        // IMPORTANT: Replace with your actual Firebase project configuration
+        /* const firebaseConfig = {
+            apiKey: "YOUR_API_KEY", // REPLACE
+            authDomain: "YOUR_PROJECT_ID.firebaseapp.com", // REPLACE
+            projectId: "YOUR_PROJECT_ID", // REPLACE
+            storageBucket: "YOUR_PROJECT_ID.appspot.com", // REPLACE
+            messagingSenderId: "YOUR_MESSAGING_SENDER_ID", // REPLACE
+            appId: "YOUR_APP_ID" // REPLACE
+        };*/
+
+            const firebaseConfig = {
+                apiKey: "AIzaSyCDat6cJq4Jo3vZWbK4-4AhsSftD_9VewA",
+                authDomain: "invoicepro-c6fa8.firebaseapp.com",
+                projectId: "invoicepro-c6fa8",
+                storageBucket: "invoicepro-c6fa8.firebasestorage.app",
+                messagingSenderId: "631506221567",
+                appId: "1:631506221567:web:d580a6455fd275929ecfca",
+                measurementId: "G-3KQDSWT7PY"
+            };
+
+
+        let firebaseApp, auth, db;
+        try {
+            if (!firebase.apps.length) {
+                 firebaseApp = firebase.initializeApp(firebaseConfig);
+            } else {
+                 firebaseApp = firebase.app(); // if already initialized
+            }
+            auth = firebase.auth();
+            db = firebase.firestore();
+            // const functions = firebase.functions(); // if using cloud functions
+            // const storage = firebase.storage(); // if using storage
+            console.log("Firebase Initialized Successfully");
+        } catch (e) {
+            console.error("Firebase initialization error:", e);
+            // Display a critical error to the user if Firebase fails to init
+            document.getElementById('root').innerHTML = `<div class="container text-center mt-5"><div class="alert alert-danger"><h2>Application Critical Error</h2><p>Failed to initialize core services. Please check your Firebase configuration and try again.</p><p><small>${e.message}</small></p></div></div>`;
+        }
+
+
+        // const API_BASE_URL = '/api'; // Less relevant for direct Firestore, but kept for Cloud Functions
+        const CLOUD_FUNCTIONS_URL = 'YOUR_CLOUD_FUNCTIONS_REGION-YOUR_PROJECT_ID.cloudfunctions.net'; // Example: 'https://us-central1-your-project-id.cloudfunctions.net' - REPLACE
+        
+        // --- CONTEXTS ---
+        const AuthContext = createContext(null);
+        const SettingsContext = createContext(null);
+        const NotificationContext = createContext(null);
+        const ModalContext = createContext(null);
+        const GlobalLoadingContext = createContext(null);
+
+        // --- I18N ---
+        // ... (I18N code remains the same)
+        const currentLocale = (typeof navigator !== 'undefined' && navigator.language) ? navigator.language.split('-')[0] : 'en';
+        const translations = {
+            en: {
+                "app.title": "InvoicyPro Dynamics",
+                "logout": "Log Out", "settings": "Settings", "reports": "Reports", "clients": "Clients", "invoices": "Invoices",
+                "welcome_user": "Welcome, {userName}!",
+                "invoice_details_title": "Invoice Details: {invoiceId}", "payment_details_title": "Payment Details",
+                "error.generic": "An unexpected error occurred. Please try again.",
+                "error.network": "A network error occurred. Please check your connection.",
+                "error.validation": "Validation failed. Please check the form for errors.",
+                "login.title": "Access Your Account", "login.prompt": "Log in to InvoicyPro Dynamics.",
+                "login.button": "Log In", "login.loading": "Logging In...",
+                "login.failed": "Login failed. Check credentials.",
+                "register.title": "Create New Account", "register.prompt": "Sign up for InvoicyPro Dynamics.",
+                "register.button": "Register", "register.loading": "Registering...",
+                "register.success": "Registration successful! Please log in.",
+                "register.failed": "Registration failed. Please try again.",
+                "register.existing_account": "Already have an account? Log In",
+                "login.no_account": "Don't have an account? Register",
+                "permissions.denied": "You do not have permission for this action or content.",
+                "confirm.delete.title": "Confirm Deletion",
+                "confirm.delete.message": "Are you sure you want to delete this {itemType}? This action cannot be undone.",
+                "delete": "Delete", "cancel": "Cancel",
+                "firebase.init.error": "Critical: Firebase could not be initialized. App functionality is limited.",
+            },
+        };
+        const t = (key, params = {}) => {
+            let translation = (translations[currentLocale] && translations[currentLocale][key]) || translations['en']?.[key] || key;
+            if (typeof translation === 'string') {
+                 Object.keys(params).forEach(pKey => { translation = translation.replace(`{${pKey}}`, params[pKey]); });
+            }
+            return translation;
+        };
+
+        // --- Global Loading Provider ---
+        // ... (GlobalLoadingProvider code remains the same)
+        const GlobalLoadingProvider = ({children}) => {
+            const [isGlobalLoading, setIsGlobalLoading] = useState(false);
+            const activeLoaders = useRef(0);
+
+            const showGlobalLoader = useCallback(() => {
+                activeLoaders.current++;
+                if (!isGlobalLoading) setIsGlobalLoading(true);
+            }, [isGlobalLoading]);
+
+            const hideGlobalLoader = useCallback(() => {
+                activeLoaders.current--;
+                if (activeLoaders.current <= 0) {
+                    activeLoaders.current = 0; 
+                    setIsGlobalLoading(false);
+                }
+            }, []);
+
+            return (
+                <GlobalLoadingContext.Provider value={{ showGlobalLoader, hideGlobalLoader }}>
+                    {isGlobalLoading && <div className="global-loader"></div>}
+                    {children}
+                </GlobalLoadingContext.Provider>
+            );
+        };
+        const useGlobalLoader = () => {
+            const context = useContext(GlobalLoadingContext);
+            if (!context) throw new Error("useGlobalLoader must be used within a GlobalLoadingProvider");
+            return context;
+        };
+
+
+        // --- API Service Helper (for Cloud Functions or other HTTP APIs) ---
+        const apiService = async (functionName, method = 'GET', body = null, customHeaders = {}, isExternal = false) => {
+            const currentUser = auth.currentUser; 
+            let token = null;
+
+            if (currentUser) {
+                try { token = await currentUser.getIdToken(); } 
+                catch (error) {
+                    console.error("Error getting Firebase ID token:", error);
+                    const err = new Error("Failed to get authentication token.");
+                    err.status = 401; throw err;
+                }
+            } else {
+                 const err = new Error('User not authenticated.');
+                 err.status = 401; throw err;
+            }
+            
+            const headers = { 
+                'Content-Type': 'application/json', 
+                'Accept': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest',
+                'Authorization': `Bearer ${token}`,
+                ...customHeaders 
+            };
+            
+            const config = { method, headers };
+            if (body) config.body = JSON.stringify(body);
+            
+            const endpoint = isExternal ? functionName : `https://${CLOUD_FUNCTIONS_URL}/${functionName}`;
+
+            try {
+                const response = await fetch(endpoint, config);
+                if (!response.ok) {
+                    let errorData = { message: response.statusText || t('error.generic') };
+                    try { errorData = await response.json(); } catch (e) { /* ignore */ }
+                    
+                    const error = new Error(errorData.message || t('error.generic'));
+                    error.status = response.status; 
+                    error.data = errorData;
+                    throw error;
+                }
+                if (response.status === 204) return null;
+                return await response.json();
+            } catch (error) {
+                if (!(error instanceof Error)) { 
+                    const networkError = new Error(error.message || t('error.network'));
+                    networkError.status = 0; 
+                    networkError.data = { message: error.message || t('error.network') };
+                    throw networkError;
+                }
+                if(!error.data) error.data = { message: error.message };
+                throw error;
+            }
+        };
+        
+        // --- Notification Provider ---
+        // ... (NotificationProvider code remains the same)
+        const NotificationProvider = ({ children }) => {
+            const [notification, setNotification] = useState(null);
+            const addNotification = useCallback((message, type = 'info', duration = 5000) => {
+                const id = Date.now(); setNotification({ message, type, id });
+                if (duration) { setTimeout(() => setNotification(prev => prev?.id === id ? null : prev), duration); }
+            }, []);
+            const clearNotification = useCallback(() => setNotification(null), []);
+            return (
+                <NotificationContext.Provider value={{ addNotification, clearNotification }}>
+                    {children}
+                    {notification && (
+                        <div style={{ position: 'fixed', bottom: '20px', right: '20px', zIndex: 2000, maxWidth: '350px' }}
+                            className={`alert alert-${notification.type}`} role="alert" aria-live="assertive">
+                            {notification.message}
+                            <button onClick={clearNotification} style={{background:'none',border:'none',float:'right',fontSize:'1.2rem',lineHeight:'1',cursor:'pointer',opacity:0.7,marginLeft:'1rem'}}>&times;</button>
+                        </div>
+                    )}
+                </NotificationContext.Provider>
+            );
+        };
+        const useNotifier = () => {
+            const context = useContext(NotificationContext);
+            if(!context) throw new Error("useNotifier must be used within a NotificationProvider");
+            return context;
+        };
+
+        // --- Modal Provider ---
+        // ... (ModalProvider and ConfirmationModal code remains the same)
+        const ModalProvider = ({ children }) => {
+            const [modalState, setModalState] = useState({ isOpen: false, content: null, title: '', props: {} });
+            const openModal = useCallback((content, title = '', props = {}) => {
+                setModalState({ isOpen: true, content, title, props });
+            }, []);
+            const closeModal = useCallback(() => {
+                setModalState(prev => ({ ...prev, isOpen: false }));
+                setTimeout(() => setModalState({ isOpen: false, content: null, title: '', props: {} }), 300); // Delay to allow animation
+            }, []);
+
+            const ModalComponent = modalState.content;
+
+            return (
+                <ModalContext.Provider value={{ openModal, closeModal }}>
+                    {children}
+                    {modalState.isOpen && ModalComponent && (
+                        <div className="modal-backdrop" onClick={closeModal} role="dialog" aria-modal="true" aria-labelledby="global-modal-title">
+                            <div className="modal-content" style={modalState.props.size === 'large' ? {maxWidth: '900px'} : (modalState.props.size === 'small' ? {maxWidth: '450px'} : {})} onClick={e => e.stopPropagation()}>
+                                <div className="modal-header">
+                                    <h2 id="global-modal-title" className="modal-title">{sanitizeHTML(modalState.title)}</h2>
+                                    <button onClick={closeModal} className="modal-close-button" aria-label="Close modal">&times;</button>
+                                </div>
+                                <ModalComponent onClose={closeModal} {...modalState.props} />
+                            </div>
+                        </div>
+                    )}
+                </ModalContext.Provider>
+            );
+        };
+        const useModal = () => {
+            const context = useContext(ModalContext);
+            if (!context) throw new Error("useModal must be used within a ModalProvider");
+            return context;
+        };
+        
+        const ConfirmationModal = ({ title, message, onConfirm, onCancel, confirmText = t('delete'), cancelText = t('cancel') }) => {
+            return (
+                <>
+                    <p style={{marginBottom: '1.5rem'}}>{message}</p>
+                    <div className="modal-footer">
+                        <button onClick={onCancel} className="button button--outline">{cancelText}</button>
+                        <button onClick={onConfirm} className="button button--danger">{confirmText}</button>
+                    </div>
+                </>
+            );
+        };
+
+        // --- Auth Provider (Firebase Auth) ---
+        const AuthProvider = ({ children }) => {
+            const [authState, dispatchAuth] = useReducer((state, action) => {
+                switch (action.type) {
+                    case 'AUTH_STATE_CHANGED': return { ...state, isAuthenticated: !!action.payload.user, user: action.payload.user, loading: false, error: null, registrationSuccess: state.registrationSuccess };
+                    case 'REGISTER_SUCCESS': return { ...state, loading: false, error: null, registrationSuccess: true };
+                    case 'LOGOUT_SUCCESS': return { ...state, isAuthenticated: false, user: null, loading: false, error: null, registrationSuccess: false };
+                    case 'AUTH_ERROR': return { ...state, loading: false, error: action.payload.error, registrationSuccess: false };
+                    case 'LOADING': return { ...state, loading: true, error: null, registrationSuccess: false };
+                    case 'CLEAR_ERROR': return { ...state, error: null };
+                    case 'CLEAR_REGISTRATION_SUCCESS': return { ...state, registrationSuccess: false };
+                    default: return state;
+                }
+            }, { isAuthenticated: false, user: null, loading: true, error: null, registrationSuccess: false });
+            
+            const { addNotification } = useNotifier();
+            const { showGlobalLoader, hideGlobalLoader } = useGlobalLoader();
+
+            useEffect(() => {
+                if (!auth) { // Firebase not initialized
+                    dispatchAuth({ type: 'AUTH_ERROR', payload: { error: t('firebase.init.error') } });
+                    addNotification(t('firebase.init.error'), 'danger', 10000);
+                    hideGlobalLoader();
+                    return;
+                }
+                showGlobalLoader();
+                const unsubscribe = auth.onAuthStateChanged(async firebaseUser => {
+                    if (firebaseUser) {
+                        try {
+                            const userDocRef = db.collection('users').doc(firebaseUser.uid);
+                            const userDoc = await userDocRef.get();
+                            let appUser;
+                            if (userDoc.exists()) {
+                                appUser = { uid: firebaseUser.uid, ...userDoc.data() };
+                            } else { // Should not happen if registration creates user doc
+                                appUser = { uid: firebaseUser.uid, email: firebaseUser.email, name: firebaseUser.displayName || "New User", roles: ['user'], createdAt: firebase.firestore.FieldValue.serverTimestamp() };
+                                await userDocRef.set(appUser); // Create doc if missing
+                            }
+                             // Ensure name and email are up-to-date from Firebase Auth source if not in Firestore or different
+                            if (!appUser.name && firebaseUser.displayName) appUser.name = firebaseUser.displayName;
+                            if (!appUser.email && firebaseUser.email) appUser.email = firebaseUser.email;
+
+                            dispatchAuth({ type: 'AUTH_STATE_CHANGED', payload: { user: appUser } });
+                        } catch (error) {
+                            console.error("Error fetching/creating user profile:", error);
+                            addNotification('Could not load full user profile.', 'warning');
+                            // Fallback to basic Firebase user info
+                            const basicUser = { uid: firebaseUser.uid, email: firebaseUser.email, name: firebaseUser.displayName, roles: ['user'] };
+                            dispatchAuth({ type: 'AUTH_STATE_CHANGED', payload: { user: basicUser } });
+                        }
+                    } else {
+                        dispatchAuth({ type: 'AUTH_STATE_CHANGED', payload: { user: null } });
+                    }
+                    hideGlobalLoader();
+                });
+                return () => unsubscribe();
+            }, [addNotification, showGlobalLoader, hideGlobalLoader]);
+
+            const login = async (email, password) => {
+                dispatchAuth({ type: 'LOADING' }); showGlobalLoader();
+                try {
+                    await auth.signInWithEmailAndPassword(email, password);
+                    // onAuthStateChanged will handle success state update
+                    addNotification('Login successful!', 'success');
+                    dispatchAuth({ type: 'CLEAR_REGISTRATION_SUCCESS' }); // Clear if pending
+                } catch (error) {
+                    const errorMessage = error.code ? mapFirebaseError(error.code) : (error.message || t('login.failed'));
+                    dispatchAuth({ type: 'AUTH_ERROR', payload: { error: errorMessage }});
+                    throw error;
+                } finally { hideGlobalLoader(); }
+            };
+            
+            const register = async (name, email, password) => {
+                dispatchAuth({ type: 'LOADING' }); showGlobalLoader();
+                try {
+                    const userCredential = await auth.createUserWithEmailAndPassword(email, password);
+                    await userCredential.user.updateProfile({ displayName: name });
+                    
+                    const userProfile = {
+                        name: name,
+                        email: email,
+                        roles: ['user'], // Default role
+                        createdAt: firebase.firestore.FieldValue.serverTimestamp()
+                    };
+                    await db.collection('users').doc(userCredential.user.uid).set(userProfile);
+                    
+                    dispatchAuth({ type: 'REGISTER_SUCCESS' });
+                    addNotification(t('register.success'), 'success');
+                    // onAuthStateChanged will eventually pick up the new user.
+                    // To avoid delay, could manually dispatch AUTH_STATE_CHANGED here, but it's better to rely on the single source of truth.
+                } catch (error) {
+                    const errorMessage = error.code ? mapFirebaseError(error.code) : (error.message || t('register.failed'));
+                    dispatchAuth({ type: 'AUTH_ERROR', payload: { error: errorMessage }});
+                    throw error;
+                } finally { hideGlobalLoader(); }
+            };
+
+            const logout = async () => {
+                dispatchAuth({ type: 'LOADING' }); showGlobalLoader();
+                try { 
+                    await auth.signOut();
+                    dispatchAuth({ type: 'LOGOUT_SUCCESS' });
+                    addNotification('Logged out successfully.', 'info');
+                }
+                catch (error) { 
+                    console.warn('Logout API call failed:', error.message); 
+                    dispatchAuth({ type: 'AUTH_ERROR', payload: { error: error.message }});
+                }
+                finally { hideGlobalLoader(); }
+            };
+            
+            const mapFirebaseError = (errorCode) => {
+                switch(errorCode) {
+                    case 'auth/user-not-found':
+                    case 'auth/wrong-password':
+                        return 'Invalid email or password.';
+                    case 'auth/email-already-in-use':
+                        return 'This email address is already in use.';
+                    case 'auth/weak-password':
+                        return 'Password is too weak. It should be at least 6 characters.';
+                    case 'auth/invalid-email':
+                        return 'Invalid email address format.';
+                    default:
+                        return t('error.generic');
+                }
+            };
+
+            const clearError = () => dispatchAuth({type: 'CLEAR_ERROR'});
+            const clearRegistrationSuccess = () => dispatchAuth({type: 'CLEAR_REGISTRATION_SUCCESS'});
+
+
+            const hasRole = useCallback((roleOrRoles) => {
+                if (!authState.isAuthenticated || !authState.user?.roles) return false;
+                const rolesToCheck = Array.isArray(roleOrRoles) ? roleOrRoles : [roleOrRoles];
+                return rolesToCheck.some(role => authState.user.roles.includes(role));
+            }, [authState.isAuthenticated, authState.user?.roles]);
+
+            return ( <AuthContext.Provider value={{ ...authState, login, logout, register, hasRole, clearError, clearRegistrationSuccess }}>{children}</AuthContext.Provider> );
+        };
+        const useAuth = () => {
+            const context = useContext(AuthContext);
+            if(!context) throw new Error("useAuth must be used within an AuthProvider");
+            return context;
+        };
+
+        // --- Settings Provider (Firestore) ---
+        const SettingsProvider = ({ children }) => {
+            const { user } = useAuth();
+            const defaultSettings = useMemo(() => ({ companyName: "", companyAddress: "", companyLogoUrl: "", defaultCurrency: "USD", defaultTaxRate: 0, invoiceTemplate: "default" }), []);
+            const [settings, setSettings] = useState(defaultSettings);
+            const [isLoadingSettings, setIsLoadingSettings] = useState(true);
+            const { addNotification } = useNotifier();
+            const { showGlobalLoader, hideGlobalLoader } = useGlobalLoader();
+
+            const loadSettings = useCallback(async () => {
+                if (user?.uid && db) {
+                    setIsLoadingSettings(true); showGlobalLoader();
+                    try {
+                        const settingsDocRef = db.collection('users').doc(user.uid).collection('settings').doc('appSettings');
+                        const docSnap = await settingsDocRef.get();
+                        if (docSnap.exists()) {
+                            setSettings(prev => ({ ...defaultSettings, ...docSnap.data() }));
+                        } else {
+                            setSettings(defaultSettings); // Use defaults if no settings found
+                             await settingsDocRef.set(defaultSettings); // Save defaults for new user
+                        }
+                    } catch (error) {
+                        console.error("Failed to load user settings:", error.message);
+                        addNotification(`Error loading settings: ${error.message}`, 'danger');
+                    } finally { setIsLoadingSettings(false); hideGlobalLoader(); }
+                } else if (!user?.uid) {
+                     setSettings(defaultSettings); // Reset to defaults on logout
+                     setIsLoadingSettings(false);
+                }
+            }, [user?.uid, addNotification, showGlobalLoader, hideGlobalLoader, defaultSettings]);
+
+            useEffect(() => { loadSettings(); }, [loadSettings]);
+
+            const updateSettings = async (newSettings) => {
+                if (!user?.uid || !db) throw new Error("User not authenticated or DB not available.");
+                showGlobalLoader();
+                try {
+                    const settingsDocRef = db.collection('users').doc(user.uid).collection('settings').doc('appSettings');
+                    await settingsDocRef.set(newSettings, { merge: true }); // merge: true to update existing or create new
+                    setSettings(newSettings); addNotification('Settings updated!', 'success'); return newSettings;
+                } catch (err) {
+                    addNotification(`Failed to update settings: ${err.message}`, 'danger'); throw err;
+                } finally { hideGlobalLoader(); }
+            };
+            return ( <SettingsContext.Provider value={{ settings, updateSettings, isLoadingSettings }}>{children}</SettingsContext.Provider> );
+        };
+        const useSettings = () => {
+            const context = useContext(SettingsContext);
+            if(!context) throw new Error("useSettings must be used within a SettingsProvider");
+            return context;
+        };
+
+        // --- Error Boundary ---
+        // ... (ReactErrorBoundary code remains the same)
+        class ReactErrorBoundary extends React.Component {
+            constructor(props) { super(props); this.state = { hasError: false, error: null, errorInfo: null }; }
+            static getDerivedStateFromError(error) { return { hasError: true, error }; }
+            componentDidCatch(error, errorInfo) { this.setState({ errorInfo }); console.error("React Error Boundary Caught:", error, errorInfo); /* Log to server here */ }
+            render() {
+                if (this.state.hasError) {
+                    return (
+                        <div className="container text-center mt-5">
+                            <div className="card alert alert-danger">
+                                <h2>Application Error</h2>
+                                <p>An unexpected error occurred. Please refresh the page. If the issue persists, contact support.</p>
+                                {this.props.isDevelopment && this.state.error && (
+                                    <details style={{ whiteSpace: 'pre-wrap', textAlign: 'left', marginTop: '1rem' }}>
+                                        <summary>Error Details</summary>
+                                        {this.state.error.toString()}<br />
+                                        {this.state.errorInfo && this.state.errorInfo.componentStack}
+                                    </details>
+                                )}
+                            </div>
+                        </div>
+                    );
+                }
+                return this.props.children;
+            }
+        }
+
+
+        // --- Utility Functions ---
+        // ... (formatDate, formatCurrency, sanitizeHTML, debounce remain the same)
+        // Minor update to formatDate for Firebase Timestamps if they are passed directly
+        const formatDate = (dateInput, options = { year: 'numeric', month: 'long', day: 'numeric' }) => {
+            if (!dateInput) return 'N/A';
+            try {
+                let dateToFormat = dateInput;
+                if (dateInput.toDate) { // Check if it's a Firebase Timestamp object
+                    dateToFormat = dateInput.toDate();
+                } else if (typeof dateInput === 'string' && !dateInput.includes('T') && dateInput.match(/^\d{4}-\d{2}-\d{2}$/)) {
+                     // Handle YYYY-MM-DD strings by ensuring they are treated as UTC to avoid timezone shifts
+                     const parts = dateInput.split('-');
+                     dateToFormat = new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+                } else if (typeof dateInput === 'string') {
+                    dateToFormat = new Date(dateInput);
+                }
+                // Ensure dateToFormat is a valid Date object
+                if (!(dateToFormat instanceof Date) || isNaN(dateToFormat.valueOf())) {
+                    console.warn("formatDate received invalid date input:", dateInput);
+                    return 'Invalid Date';
+                }
+                return dateToFormat.toLocaleDateString(currentLocale, options);
+            } catch (e) {
+                console.warn("formatDate error:", e, "Input:", dateInput);
+                return 'Invalid Date';
+            }
+        };
+        const formatCurrency = (amount, currencyCode = 'USD') => {
+             try { return new Intl.NumberFormat(currentLocale, { style: 'currency', currency: currencyCode }).format(amount != null ? amount : 0); }
+             catch(e) { console.warn("formatCurrency error:", e); return `${amount != null ? amount : 0} ${currencyCode}`; } // Fallback
+        };
+        const sanitizeHTML = (str) => {
+            if (typeof str !== 'string') return '';
+            const temp = document.createElement('div'); temp.textContent = str; return temp.innerHTML;
+        };
+        const debounce = (func, delay) => {
+            let timeoutId;
+            return function(...args) { const context = this; clearTimeout(timeoutId); timeoutId = setTimeout(() => func.apply(context, args), delay); };
+        };
+
+        // Helper to convert data with Firestore Timestamps to JSON-serializable (ISO strings)
+        const firestoreDocToJson = (doc) => {
+            if (!doc.exists) return null;
+            const data = doc.data();
+            const id = doc.id;
+            const jsonReadyData = {};
+            for (const key in data) {
+                if (data[key] instanceof firebase.firestore.Timestamp) {
+                    jsonReadyData[key] = data[key].toDate().toISOString();
+                } else if (Array.isArray(data[key])) {
+                     jsonReadyData[key] = data[key].map(item => 
+                        item instanceof firebase.firestore.Timestamp ? item.toDate().toISOString() : item
+                    );
+                }
+                 else {
+                    jsonReadyData[key] = data[key];
+                }
+            }
+            return { id, ...jsonReadyData };
+        };
+
+        // --- Firestore API Services ---
+        const createFirestoreApiService = (collectionName, subCollectionPathFn = null) => {
+            const getCollectionRef = (userId, parentId = null) => {
+                if (!db) throw new Error("Firestore (db) is not initialized.");
+                if (!userId) throw new Error("User ID is required for Firestore operations.");
+                if (subCollectionPathFn) {
+                    return db.collection(subCollectionPathFn(userId, parentId));
+                }
+                return db.collection('users').doc(userId).collection(collectionName);
+            };
+
+            return {
+                async getAll(filters = {}) {
+                    const currentUser = auth.currentUser;
+                    if (!currentUser) throw new Error("User not authenticated.");
+                    let query = getCollectionRef(currentUser.uid);
+
+                    if (filters.status) query = query.where('status', '==', filters.status);
+                    if (filters.search && collectionName === 'clients' && filters.searchField === 'name') { // Simple name search for clients
+                         query = query.orderBy('name').startAt(filters.search).endAt(filters.search + '\uf8ff');
+                    } else if (filters.search && collectionName === 'invoices' && filters.searchField === 'invoice_number') {
+                         query = query.where('invoice_number', '==', filters.search); // Exact match for invoice number
+                    } else if (filters.search && collectionName === 'invoices' && filters.searchField === 'client_name_searchable') { // Requires a dedicated searchable field
+                         query = query.orderBy('client_name_searchable').startAt(filters.search.toLowerCase()).endAt(filters.search.toLowerCase() + '\uf8ff');
+                    }
+
+
+                    // Default ordering if not already ordered by search
+                    if (!(filters.search && (filters.searchField === 'name' || filters.searchField === 'client_name_searchable')) && collectionName === 'invoices') {
+                        query = query.orderBy('invoice_date', 'desc');
+                    } else if (!(filters.search && filters.searchField === 'name') && collectionName === 'clients') {
+                        query = query.orderBy('name', 'asc');
+                    }
+
+
+                    const limit = filters.limit || 10;
+                    let paginatedQuery = query;
+
+                    // Firestore pagination: get total count is expensive. We'll try to estimate or fetch one extra to see if there's a next page.
+                    // Or, accept that totalPages might not be accurate without a separate count query.
+                    let totalItems = 0;
+                    if (filters.page && filters.page > 1 && filters.startAfterDoc) {
+                        paginatedQuery = paginatedQuery.startAfter(filters.startAfterDoc).limit(limit);
+                    } else {
+                        paginatedQuery = paginatedQuery.limit(limit);
+                    }
+                    
+                    const snapshot = await paginatedQuery.get();
+                    const data = snapshot.docs.map(firestoreDocToJson);
+                    
+                    // Try to get total count (can be slow for large collections)
+                    // For a more scalable solution, maintain counts in a separate document using Cloud Functions.
+                    try {
+                       const countSnapshot = await getCollectionRef(currentUser.uid).get(); // Get all docs in the base query (without pagination)
+                       totalItems = countSnapshot.size;
+                    } catch (e) {
+                        console.warn("Could not get total item count efficiently:", e.message);
+                        totalItems = data.length + (snapshot.docs.length === limit ? 1 : 0); // Rough estimate
+                    }
+
+
+                    return {
+                        data,
+                        pagination: {
+                            currentPage: filters.page || 1,
+                            limit,
+                            totalItems,
+                            totalPages: Math.ceil(totalItems / limit),
+                            lastVisibleDoc: snapshot.docs[snapshot.docs.length - 1] || null, // for next page
+                            firstVisibleDoc: snapshot.docs[0] || null, // for prev page (if needed)
+                        }
+                    };
+                },
+                async getById(id) {
+                    const currentUser = auth.currentUser;
+                    if (!currentUser) throw new Error("User not authenticated.");
+                    const docRef = getCollectionRef(currentUser.uid).doc(id);
+                    const docSnap = await docRef.get();
+                    if (!docSnap.exists) throw new Error(`${collectionName.slice(0,-1)} not found`);
+                    return firestoreDocToJson(docSnap);
+                },
+                async create(data) {
+                    const currentUser = auth.currentUser;
+                    if (!currentUser) throw new Error("User not authenticated.");
+                    const dataToSave = {
+                        ...data,
+                        user_id: currentUser.uid, // Ensure user_id is set
+                        created_at: firebase.firestore.FieldValue.serverTimestamp(),
+                        updated_at: firebase.firestore.FieldValue.serverTimestamp(),
+                    };
+                    // Convert specific date fields if they exist
+                    if (data.invoice_date) dataToSave.invoice_date = firebase.firestore.Timestamp.fromDate(new Date(data.invoice_date));
+                    if (data.due_date) dataToSave.due_date = data.due_date ? firebase.firestore.Timestamp.fromDate(new Date(data.due_date)) : null;
+                    if (data.recurrence_end_date) dataToSave.recurrence_end_date = data.recurrence_end_date ? firebase.firestore.Timestamp.fromDate(new Date(data.recurrence_end_date)) : null;
+
+
+                    // For invoices, denormalize client name for searching/sorting
+                    if (collectionName === 'invoices' && data.client_id && data.client_name) {
+                        dataToSave.client_name_searchable = data.client_name.toLowerCase();
+                    }
+
+
+                    const docRef = await getCollectionRef(currentUser.uid).add(dataToSave);
+                    return { id: docRef.id, ...dataToSave }; // Return with ID and timestamps (though serverTimestamp is pending)
+                },
+                async update(id, data) {
+                    const currentUser = auth.currentUser;
+                    if (!currentUser) throw new Error("User not authenticated.");
+                    const docRef = getCollectionRef(currentUser.uid).doc(id);
+                    const dataToUpdate = {
+                        ...data,
+                        updated_at: firebase.firestore.FieldValue.serverTimestamp(),
+                    };
+                    if (data.invoice_date) dataToUpdate.invoice_date = firebase.firestore.Timestamp.fromDate(new Date(data.invoice_date));
+                    if (data.due_date) dataToUpdate.due_date = data.due_date ? firebase.firestore.Timestamp.fromDate(new Date(data.due_date)) : null;
+                    else if (data.hasOwnProperty('due_date') && data.due_date === null) dataToUpdate.due_date = null; // Explicitly set to null
+                    if (data.recurrence_end_date) dataToUpdate.recurrence_end_date = data.recurrence_end_date ? firebase.firestore.Timestamp.fromDate(new Date(data.recurrence_end_date)) : null;
+                    else if (data.hasOwnProperty('recurrence_end_date') && data.recurrence_end_date === null) dataToUpdate.recurrence_end_date = null;
+                    
+                    if (collectionName === 'invoices' && data.client_id && data.client_name) {
+                        dataToUpdate.client_name_searchable = data.client_name.toLowerCase();
+                    }
+
+                    await docRef.update(dataToUpdate);
+                    return { id, ...dataToUpdate };
+                },
+                async delete(id) {
+                    const currentUser = auth.currentUser;
+                    if (!currentUser) throw new Error("User not authenticated.");
+                    // If deleting an invoice, also delete its payments (optional, or use Cloud Function for cascading deletes)
+                    if (collectionName === 'invoices') {
+                        const paymentsRef = getCollectionRef(currentUser.uid).doc(id).collection('payments');
+                        const paymentsSnapshot = await paymentsRef.get();
+                        const batch = db.batch();
+                        paymentsSnapshot.docs.forEach(doc => batch.delete(doc.ref));
+                        await batch.commit();
+                    }
+                    await getCollectionRef(currentUser.uid).doc(id).delete();
+                    return { id };
+                },
+            };
+        };
+
+        const clientApiService = createFirestoreApiService('clients');
+        const invoiceApiService = {
+            ...createFirestoreApiService('invoices'),
+            async getDashboardSummary() {
+                const currentUser = auth.currentUser;
+                if (!currentUser || !db) throw new Error("User not authenticated or DB not available.");
+                const invoicesRef = db.collection('users').doc(currentUser.uid).collection('invoices');
+                
+                let total_outstanding = 0;
+                let total_overdue = 0;
+                let paid_last_30_days = 0;
+
+                const thirtyDaysAgo = new Date();
+                thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+                const thirtyDaysAgoTimestamp = firebase.firestore.Timestamp.fromDate(thirtyDaysAgo);
+
+                // This is a simplified summary. For production, use Cloud Functions for aggregation.
+                const snapshot = await invoicesRef.get();
+                snapshot.forEach(doc => {
+                    const invoice = doc.data();
+                    const balanceDue = parseFloat(invoice.balance_due) || 0; // Assuming balance_due field exists
+                    
+                    if (invoice.status !== 'paid' && invoice.status !== 'draft' && invoice.status !== 'cancelled' && balanceDue > 0) {
+                        total_outstanding += balanceDue;
+                    }
+                    if (invoice.status === 'overdue' && balanceDue > 0) {
+                        total_overdue += balanceDue;
+                    }
+                });
+                
+                // Payments for paid_last_30_days
+                // Requires payments to be a top-level collection or a collection group query with appropriate indexing.
+                // Assuming payments are subcollections: /users/{uid}/invoices/{invoiceId}/payments/{paymentId}
+                // And each payment has user_id field.
+                const paymentsQuery = db.collectionGroup('payments')
+                                      .where('user_id', '==', currentUser.uid)
+                                      .where('payment_date', '>=', thirtyDaysAgoTimestamp);
+                const paymentsSnapshot = await paymentsQuery.get();
+                paymentsSnapshot.forEach(doc => {
+                    paid_last_30_days += parseFloat(doc.data().amount) || 0;
+                });
+
+                return { total_outstanding, total_overdue, paid_last_30_days };
+            },
+            async downloadInvoicePDF(invoiceId) {
+                // Calls a Cloud Function
+                try {
+                    // The Cloud Function would fetch invoice data using Admin SDK & generate PDF
+                    const result = await apiService(`generateInvoicePdf?invoiceId=${invoiceId}`, 'GET'); // GET or POST depending on CF
+                    // Assuming CF returns a URL to the PDF or triggers download.
+                    // This part needs to match your Cloud Function's response.
+                    // For direct download, fetch blob as in original code, but from CF URL.
+                    const pdfResponse = await fetch(result.pdfUrl, { headers: { 'Authorization': `Bearer ${await auth.currentUser.getIdToken()}` }}); // If CF returns a signed URL
+                    if (!pdfResponse.ok) throw new Error('PDF generation failed in Cloud Function.');
+                    const blob = await pdfResponse.blob(); const url = window.URL.createObjectURL(blob);
+                    const a = document.createElement('a'); a.href = url; a.download = `invoice-${invoiceId}.pdf`;
+                    document.body.appendChild(a); a.click(); a.remove(); window.URL.revokeObjectURL(url);
+                } catch (error) {
+                    console.error("Error downloading PDF:", error);
+                    throw new Error(error.message || "PDF download failed.");
+                }
+             },
+            async sendInvoiceEmail(invoiceId, emailData = {}) {
+                // Calls a Cloud Function
+                return apiService('sendInvoiceEmail', 'POST', { invoiceId, ...emailData });
+            },
+            async getRevenueByClientReport(filters = {}) { // This should be a Cloud Function
+                console.warn("getRevenueByClientReport should ideally be a Cloud Function for performance.");
+                // For client-side (less performant for large data):
+                const currentUser = auth.currentUser;
+                if (!currentUser) throw new Error("User not authenticated.");
+                const invoicesSnapshot = await db.collection('users').doc(currentUser.uid).collection('invoices')
+                                            .where('status', 'in', ['paid', 'partially_paid']) // Consider only paid amounts
+                                            .get();
+                const revenueMap = {};
+                invoicesSnapshot.forEach(doc => {
+                    const invoice = doc.data();
+                    const clientId = invoice.client_id;
+                    const clientName = invoice.client_name || 'Unknown Client';
+                    const amountPaid = parseFloat(invoice.amount_paid) || 0; // Assuming amount_paid field
+                    
+                    if (!revenueMap[clientId]) {
+                        revenueMap[clientId] = { client_name: clientName, invoice_count: 0, total_revenue: 0 };
+                    }
+                    revenueMap[clientId].invoice_count++;
+                    revenueMap[clientId].total_revenue += amountPaid;
+                });
+                return { data: Object.values(revenueMap) };
+            },
+            async recordPayment(invoiceId, paymentData) {
+                const currentUser = auth.currentUser;
+                if (!currentUser) throw new Error("User not authenticated.");
+                const invoiceRef = db.collection('users').doc(currentUser.uid).collection('invoices').doc(invoiceId);
+                
+                const paymentPayload = {
+                    ...paymentData,
+                    user_id: currentUser.uid, // For collectionGroup queries if needed
+                    invoice_id: invoiceId,
+                    payment_date: firebase.firestore.Timestamp.fromDate(new Date(paymentData.payment_date)),
+                    created_at: firebase.firestore.FieldValue.serverTimestamp()
+                };
+                const paymentRef = await invoiceRef.collection('payments').add(paymentPayload);
+
+                // Update invoice: This should ideally be a Cloud Function triggered by payment creation.
+                // Client-side transaction for robustness:
+                await db.runTransaction(async (transaction) => {
+                    const invoiceDoc = await transaction.get(invoiceRef);
+                    if (!invoiceDoc.exists) throw "Invoice not found!";
+                    
+                    const invoice = invoiceDoc.data();
+                    let totalPaid = parseFloat(invoice.amount_paid) || 0;
+                    totalPaid += parseFloat(paymentData.amount);
+
+                    const balanceDue = (parseFloat(invoice.total_amount) || 0) - totalPaid;
+                    let newStatus = invoice.status;
+                    if (balanceDue <= 0) newStatus = 'paid';
+                    else if (totalPaid > 0) newStatus = 'partially_paid';
+                    
+                    transaction.update(invoiceRef, {
+                        amount_paid: totalPaid,
+                        balance_due: balanceDue,
+                        status: newStatus,
+                        updated_at: firebase.firestore.FieldValue.serverTimestamp()
+                    });
+                });
+                return { id: paymentRef.id, ...paymentPayload };
+            },
+            async getPayments(invoiceId) {
+                const currentUser = auth.currentUser;
+                if (!currentUser) throw new Error("User not authenticated.");
+                const paymentsSnapshot = await db.collection('users').doc(currentUser.uid)
+                                               .collection('invoices').doc(invoiceId)
+                                               .collection('payments')
+                                               .orderBy('payment_date', 'desc')
+                                               .get();
+                return {
+                    data: paymentsSnapshot.docs.map(doc => firestoreDocToJson(doc))
+                };
+            },
+        };
+        
+        // --- UI Components ---
+        // ... (AppHeader remains largely the same)
+        const AppHeader = memo(() => {
+            const { isAuthenticated, user, logout, hasRole } = useAuth();
+            const { openModal } = useModal();
+            const [currentPath, setCurrentPath] = useState(window.location.hash.substring(1).split('?')[0] || '/dashboard');
+             useEffect(() => {
+                const handleHashChange = () => setCurrentPath(window.location.hash.substring(1).split('?')[0] || '/dashboard');
+                window.addEventListener('hashchange', handleHashChange);
+                return () => window.removeEventListener('hashchange', handleHashChange);
+            }, []);
+
+
+            const openSettings = () => openModal(SettingsModal, t('settings'));
+
+            return (
+                <header className="app-header" role="banner">
+                    <div className="container">
+                        <a href="#/dashboard" className="app-header__logo" style={{color: 'white', textDecoration:'none'}} aria-label={`${t('app.title')} homepage`}>{t('app.title')}</a>
+                        {isAuthenticated && user && (
+                            <nav className="app-header__nav" aria-label="Main navigation">
+                                <a href="#/dashboard" className={`nav-link ${currentPath === '/dashboard' || currentPath === '/' ? 'active' : ''}`}>{t('invoices')}</a>
+                                <a href="#/clients" className={`nav-link ${currentPath === '/clients' ? 'active' : ''}`}>{t('clients')}</a>
+                                {hasRole('admin') && <a href="#/reports" className={`nav-link ${currentPath === '/reports' ? 'active' : ''}`}>{t('reports')}</a>}
+                                
+                                <span className="app-header__user-info" aria-live="polite">{t('welcome_user', {userName: sanitizeHTML(user.name || user.email)})}</span>
+                                <button onClick={openSettings} className="button button--icon" aria-label={t('settings')}>
+                                    <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg>
+                                    <span className="sr-only">{t('settings')}</span>
+                                </button>
+                                <button onClick={logout} className="button" aria-label={t('logout')}>{t('logout')}</button>
+                            </nav>
+                        )}
+                         {!isAuthenticated && !user && currentPath !== '/login' && currentPath !== '/register' && ( // Simple check for login page itself
+                            <a href="#/login" className="button">Log In</a>
+                         )}
+                    </div>
+                </header>
+            );
+        });
+
+        // ... (InvoiceStatusBadge remains the same)
+        const InvoiceStatusBadge = ({ status }) => {
+            let className = '';
+            let text = status ? status.charAt(0).toUpperCase() + status.slice(1) : 'Unknown';
+            switch (status?.toLowerCase()) {
+                case 'paid': className = 'status-paid'; break;
+                case 'partially_paid': className = 'status-pending'; text='Partially Paid'; break;
+                case 'pending': className = 'status-pending'; break;
+                case 'overdue': className = 'status-overdue'; break;
+                case 'draft': className = 'status-draft'; break;
+                case 'cancelled': className = 'status-cancelled'; break;
+                default: className = '';
+            }
+            return <span className={className} style={{padding:'0.2em 0.5em', borderRadius:'var(--border-radius-sm)', fontSize:'0.8em', display:'inline-block', border: `1px solid currentColor`}}>{sanitizeHTML(text)}</span>;
+        };
+        
+        // ... (ClientSelect remains the same)
+        const ClientSelect = ({ value, onChange, clients, disabled, required, name = "client_id", id = "client_id" }) => {
+            if (!clients) return <select className="form-select" disabled><option>Loading clients...</option></select>;
+            return (
+                <select id={id} name={name} className="form-select" value={value || ""} onChange={onChange} disabled={disabled} required={required}>
+                    <option value="">Select a Client</option>
+                    {clients.map(client => (
+                        <option key={client.id} value={client.id}>{sanitizeHTML(client.name)} ({sanitizeHTML(client.email)})</option>
+                    ))}
+                </select>
+            );
+        };
+
+        // InvoiceForm: Needs to handle client_name for denormalization
+        const InvoiceForm = ({ onSubmit, initialData = null, onCancel, clients, onClose }) => {
+            const { settings } = useSettings();
+            const initialFormState = useMemo(() => {
+                const defaultTax = initialData?.global_tax_rate ?? settings.defaultTaxRate ?? 0;
+                const defaultItems = [{ description: '', quantity: 1, unit_price: 0, tax_rate: defaultTax }];
+                return {
+                    client_id: initialData?.client_id || '',
+                    client_name: initialData?.client_name || '', // For denormalization
+                    client_email: initialData?.client_email || '', // For denormalization
+                    invoice_date: initialData?.invoice_date?.split('T')[0] || new Date().toISOString().split('T')[0],
+                    due_date: initialData?.due_date?.split('T')[0] || '',
+                    items: initialData?.items?.length ? initialData.items.map(it => ({...it, id: it.id || Date.now() + Math.random()})) : defaultItems.map(it => ({...it, id: Date.now() + Math.random()})),
+                    status: initialData?.status || 'draft',
+                    notes: initialData?.notes || '',
+                    currency: initialData?.currency || settings.defaultCurrency || 'USD',
+                    global_tax_rate: defaultTax,
+                    is_recurring: initialData?.is_recurring || false,
+                    recurrence_frequency: initialData?.recurrence_frequency || 'monthly',
+                    recurrence_interval: initialData?.recurrence_interval || 1,
+                    recurrence_end_date: initialData?.recurrence_end_date?.split('T')[0] || '',
+                    // Fields for totals, to be stored in Firestore
+                    total_amount: initialData?.total_amount || 0,
+                    amount_paid: initialData?.amount_paid || 0,
+                    balance_due: initialData?.balance_due || 0,
+                };
+            }, [initialData, settings]);
+
+            const [formData, dispatchForm] = useReducer((state, action) => {
+                switch(action.type) {
+                    case 'SET_FIELD': return { ...state, [action.field]: action.value };
+                    case 'SET_ITEM_FIELD': { /* ... */ } // No change
+                    case 'ADD_ITEM': return { ...state, items: [...state.items, { id: Date.now() + Math.random(), description: '', quantity: 1, unit_price: 0, tax_rate: state.global_tax_rate || 0 }] };
+                    case 'REMOVE_ITEM': return { ...state, items: state.items.length > 1 ? state.items.filter((_, i) => i !== action.index) : state.items };
+                    case 'RESET_FORM': return initialFormState;
+                    default: return state;
+                }
+            }, initialFormState);
+             // Add missing reducer cases for items from original
+            const formReducer = (state, action) => {
+                switch(action.type) {
+                    case 'SET_FIELD': return { ...state, [action.field]: action.value };
+                    case 'SET_ITEM_FIELD': {
+                        const newItems = state.items.map((item, idx) => 
+                            idx === action.index ? { ...item, [action.field]: (['quantity', 'unit_price', 'tax_rate'].includes(action.field) ? parseFloat(action.value) || 0 : action.value) } : item
+                        );
+                        return { ...state, items: newItems };
+                    }
+                    case 'ADD_ITEM': return { ...state, items: [...state.items, { id: Date.now() + Math.random(), description: '', quantity: 1, unit_price: 0, tax_rate: state.global_tax_rate || 0 }] };
+                    case 'REMOVE_ITEM': return { ...state, items: state.items.length > 1 ? state.items.filter((_, i) => i !== action.index) : state.items };
+                    case 'RESET_FORM': return initialFormState; // initialFormState needs to be in scope or passed
+                    default: return state;
+                }
+            };
+            const [newFormData, newDispatchForm] = useReducer(formReducer, initialFormState);
+            // Replace formData and dispatchForm with newFormData and newDispatchForm if using this. For now, stick to original.
+
+
+            useEffect(() => { dispatchForm({ type: 'RESET_FORM' }); }, [initialFormState]);
+
+            const [isLoading, setIsLoading] = useState(false);
+            const [errors, setErrors] = useState({});
+
+            const calculateItemTotal = (item) => (Number(item.quantity) * Number(item.unit_price)) * (1 + (Number(item.tax_rate || 0) / 100));
+            
+            const calculated_total_amount = useMemo(() => newFormData.items.reduce((sum, item) => sum + calculateItemTotal(item), 0), [newFormData.items]);
+
+            const handleFieldChange = (e) => {
+                const { name, value, type, checked } = e.target;
+                newDispatchForm({ type: 'SET_FIELD', field: name, value: type === 'checkbox' ? checked : value });
+                if (errors[name]) setErrors(prev => ({ ...prev, [name]: null }));
+
+                if (name === "client_id") {
+                    const selectedClient = clients.find(c => c.id === value);
+                    if (selectedClient) {
+                        newDispatchForm({ type: 'SET_FIELD', field: 'client_name', value: selectedClient.name });
+                        newDispatchForm({ type: 'SET_FIELD', field: 'client_email', value: selectedClient.email });
+                    } else {
+                        newDispatchForm({ type: 'SET_FIELD', field: 'client_name', value: '' });
+                        newDispatchForm({ type: 'SET_FIELD', field: 'client_email', value: '' });
+                    }
+                }
+            };
+            const handleItemChange = (index, field, value) => newDispatchForm({ type: 'SET_ITEM_FIELD', index, field, value });
+
+            const validateForm = () => { 
+                const newErrors = {};
+                if (!newFormData.client_id) newErrors.client_id = "Client is required.";
+                if (!newFormData.invoice_date) newErrors.invoice_date = "Invoice date is required.";
+                newFormData.items.forEach((item, index) => {
+                    if (!item.description.trim()) newErrors[`item_description_${index}`] = "Description is required.";
+                    if (item.quantity <= 0) newErrors[`item_quantity_${index}`] = "Quantity must be positive.";
+                    if (item.unit_price < 0) newErrors[`item_unit_price_${index}`] = "Unit price cannot be negative.";
+                });
+                if(newFormData.is_recurring && newFormData.recurrence_frequency !== 'once' && !newFormData.recurrence_end_date) {
+                    // newErrors.recurrence_end_date = "End date is required for recurring invoices unless frequency is 'once'.";
+                } // Made recurrence_end_date optional as per original form logic
+                setErrors(newErrors);
+                return Object.keys(newErrors).length === 0;
+            };
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                if (!validateForm()) { setErrors(prev => ({ ...prev, form: "Please correct the errors above." })); return; }
+                setIsLoading(true); setErrors({});
+                
+                const finalTotalAmount = calculated_total_amount;
+                const amountPaid = newFormData.amount_paid || 0; // Keep existing if editing, else 0
+                const balanceDue = finalTotalAmount - amountPaid;
+
+                const payload = { 
+                    ...newFormData, 
+                    items: newFormData.items.map(({id, ...rest}) => rest), // Remove temporary client-side ID
+                    total_amount: finalTotalAmount,
+                    amount_paid: amountPaid,
+                    balance_due: balanceDue,
+                 };
+                // Ensure dates are in YYYY-MM-DD string format for Firebase service to convert to Timestamp
+                payload.invoice_date = newFormData.invoice_date;
+                payload.due_date = newFormData.due_date || null; // Firestore can store null
+                payload.recurrence_end_date = newFormData.is_recurring && newFormData.recurrence_end_date ? newFormData.recurrence_end_date : null;
+
+                try {
+                    await onSubmit(payload); 
+                    onClose(); 
+                } catch (err) {
+                    setErrors({ form: err.data?.message || err.message || "Failed to save invoice." });
+                } finally { setIsLoading(false); }
+            };
+            
+            return (
+                <form onSubmit={handleSubmit} className="card" aria-labelledby="invoice-form-title" noValidate>
+                     {errors.form && <div className="alert alert-danger">{errors.form}</div>}
+                    <fieldset className="mb-4">
+                        <legend className="h3 mb-3">Client & Dates</legend>
+                        <div className="form-grid">
+                            <div className="form-group">
+                                <label htmlFor="client_id">Client <span className="text-danger-color">*</span></label>
+                                <ClientSelect name="client_id" value={newFormData.client_id} clients={clients} onChange={handleFieldChange} disabled={isLoading} required />
+                                {errors.client_id && <div className="invalid-feedback">{errors.client_id}</div>}
+                            </div>
+                             <div className="form-group">
+                                <label htmlFor="invoice_date">Invoice Date <span className="text-danger-color">*</span></label>
+                                <input type="date" id="invoice_date" name="invoice_date" className={`form-control ${errors.invoice_date ? 'is-invalid' : ''}`} value={newFormData.invoice_date} onChange={handleFieldChange} required aria-required="true" disabled={isLoading} />
+                                {errors.invoice_date && <div className="invalid-feedback">{errors.invoice_date}</div>}
+                            </div>
+                            <div className="form-group">
+                                <label htmlFor="due_date">Due Date</label>
+                                <input type="date" id="due_date" name="due_date" className="form-control" value={newFormData.due_date} onChange={handleFieldChange} min={newFormData.invoice_date} disabled={isLoading} />
+                            </div>
+                            <div className="form-group">
+                                <label htmlFor="currency">Currency</label>
+                                <input type="text" id="currency" name="currency" className="form-control" value={newFormData.currency} onChange={handleFieldChange} maxLength="3" placeholder="USD" disabled={isLoading} />
+                            </div>
+                        </div>
+                    </fieldset>
+                    <fieldset className="mb-4">
+                        <legend className="h3 mb-3">Items</legend>
+                         <div className="form-group" style={{maxWidth: '200px'}}>
+                            <label htmlFor="global_tax_rate">Default Item Tax Rate (%)</label>
+                            <input type="number" id="global_tax_rate" name="global_tax_rate" className="form-control" value={newFormData.global_tax_rate} onChange={handleFieldChange} min="0" step="0.01" disabled={isLoading} />
+                        </div>
+                        {newFormData.items.map((item, index) => (
+                            <div key={item.id} className="invoice-item-row" role="group" aria-labelledby={`item-group-heading-${index}`}>
+                                <div className="form-group">
+                                    {index === 0 && <label htmlFor={`itemDescription-${index}`}>Description <span className="text-danger-color">*</span></label>}
+                                    <input type="text" id={`itemDescription-${index}`} name="description" placeholder="Item description" className={`form-control ${errors[`item_description_${index}`] ? 'is-invalid' : ''}`} value={item.description} onChange={e => handleItemChange(index, 'description', e.target.value)} required aria-required="true" disabled={isLoading} />
+                                    {errors[`item_description_${index}`] && <div className="invalid-feedback">{errors[`item_description_${index}`]}</div>}
+                                </div>
+                                <div className="form-group">
+                                    {index === 0 && <label htmlFor={`itemQuantity-${index}`}>Qty <span className="text-danger-color">*</span></label>}
+                                    <input type="number" id={`itemQuantity-${index}`} name="quantity" placeholder="1" min="0.01" step="any" className={`form-control ${errors[`item_quantity_${index}`] ? 'is-invalid' : ''}`} value={item.quantity} onChange={e => handleItemChange(index, 'quantity', e.target.value)} required aria-required="true" disabled={isLoading} />
+                                    {errors[`item_quantity_${index}`] && <div className="invalid-feedback">{errors[`item_quantity_${index}`]}</div>}
+                                </div>
+                                <div className="form-group">
+                                    {index === 0 && <label htmlFor={`itemUnitPrice-${index}`}>Unit Price <span className="text-danger-color">*</span></label>}
+                                    <input type="number" id={`itemUnitPrice-${index}`} name="unit_price" placeholder="0.00" min="0" step="0.01" className={`form-control ${errors[`item_unit_price_${index}`] ? 'is-invalid' : ''}`} value={item.unit_price} onChange={e => handleItemChange(index, 'unit_price', e.target.value)} required aria-required="true" disabled={isLoading} />
+                                    {errors[`item_unit_price_${index}`] && <div className="invalid-feedback">{errors[`item_unit_price_${index}`]}</div>}
+                                </div>
+                                <div className="form-group">
+                                    {index === 0 && <label htmlFor={`itemTaxRate-${index}`}>Tax (%)</label>}
+                                    <input type="number" id={`itemTaxRate-${index}`} name="tax_rate" placeholder="0" min="0" step="0.01" className="form-control" value={item.tax_rate} onChange={e => handleItemChange(index, 'tax_rate', e.target.value)} disabled={isLoading} />
+                                </div>
+                                <button type="button" onClick={() => newDispatchForm({ type: 'REMOVE_ITEM', index })} className="button button--danger button--icon" disabled={newFormData.items.length <= 1 || isLoading} aria-label={`Remove item ${index + 1}`}>&times;</button>
+                            </div>
+                        ))}
+                        <button type="button" onClick={() => newDispatchForm({ type: 'ADD_ITEM' })} className="button button--outline mt-1 mb-3" disabled={isLoading}>Add Item</button>
+                    </fieldset>
+                    <fieldset className="mb-4">
+                        <legend className="h3 mb-3">Recurring Settings</legend>
+                        <div className="form-check mb-3">
+                            <input type="checkbox" id="is_recurring" name="is_recurring" className="form-check-input" checked={newFormData.is_recurring} onChange={handleFieldChange} disabled={isLoading} />
+                            <label htmlFor="is_recurring">This is a recurring invoice</label>
+                        </div>
+                        {newFormData.is_recurring && (
+                            <div className="form-grid">
+                                <div className="form-group">
+                                    <label htmlFor="recurrence_frequency">Frequency</label>
+                                    <select id="recurrence_frequency" name="recurrence_frequency" className="form-select" value={newFormData.recurrence_frequency} onChange={handleFieldChange} disabled={isLoading}>
+                                        <option value="daily">Daily</option><option value="weekly">Weekly</option>
+                                        <option value="monthly">Monthly</option><option value="yearly">Yearly</option>
+                                        <option value="once">Once (Scheduled Send)</option>
+                                    </select>
+                                </div>
+                                {newFormData.recurrence_frequency !== 'once' && 
+                                <div className="form-group">
+                                    <label htmlFor="recurrence_interval">Interval (every X)</label>
+                                    <input type="number" id="recurrence_interval" name="recurrence_interval" className="form-control" min="1" value={newFormData.recurrence_interval} onChange={handleFieldChange} disabled={isLoading} />
+                                </div>
+                                }
+                                <div className="form-group">
+                                    <label htmlFor="recurrence_end_date">End Date {newFormData.recurrence_frequency !== 'once' && !newFormData.recurrence_end_date && <span className="text-danger-color">*</span>}</label>
+                                    <input type="date" id="recurrence_end_date" name="recurrence_end_date" className={`form-control ${errors.recurrence_end_date ? 'is-invalid' : ''}`} value={newFormData.recurrence_end_date} onChange={handleFieldChange} min={newFormData.invoice_date} disabled={isLoading} />
+                                    {errors.recurrence_end_date && <div className="invalid-feedback">{errors.recurrence_end_date}</div>}
+                                    <small className="text-muted-color">Leave blank for indefinite recurrence (if frequency is not 'once').</small>
+                                </div>
+                            </div>
+                        )}
+                    </fieldset>
+                     <div className="form-group">
+                        <label htmlFor="status">Status</label>
+                        <select id="status" name="status" className="form-select" value={newFormData.status} onChange={handleFieldChange} disabled={isLoading}>
+                            <option value="draft">Draft</option><option value="pending">Pending</option>
+                            <option value="paid">Paid</option><option value="partially_paid">Partially Paid</option>
+                            <option value="overdue">Overdue</option><option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="notes">Notes / Terms</label>
+                        <textarea id="notes" name="notes" className="form-control" value={newFormData.notes} onChange={handleFieldChange} placeholder="e.g., Payment due within 30 days." disabled={isLoading}></textarea>
+                    </div>
+                    <h4 className="mt-3">Total Amount (incl. tax): {formatCurrency(calculated_total_amount, newFormData.currency)}</h4>
+                    <div className="mt-4 d-flex gap-2">
+                        <button type="submit" className="button button--primary" disabled={isLoading}>
+                            {isLoading && <span className="spinner spinner-inline"></span>}
+                            {isLoading ? (initialData?.id ? 'Updating...' : 'Saving...') : (initialData?.id ? 'Update Invoice' : 'Save Invoice')}
+                        </button>
+                        {onCancel && <button type="button" onClick={onCancel} className="button button--outline" disabled={isLoading}>Cancel</button>}
+                    </div>
+                </form>
+            );
+        };
+
+        // ... (RecordPaymentModal remains largely the same, onSuccess/onClose are key)
+        const RecordPaymentModal = ({ invoiceId, currentBalance, currency, onSuccess, onClose }) => {
+            const [amount, setAmount] = useState(currentBalance > 0 ? Math.min(currentBalance, 0) : ''); // Initialize with current balance if positive
+            const [paymentDate, setPaymentDate] = useState(new Date().toISOString().split('T')[0]);
+            const [paymentMethod, setPaymentMethod] = useState('card');
+            const [notes, setNotes] = useState('');
+            const [isLoading, setIsLoading] = useState(false);
+            const { addNotification } = useNotifier();
+            const { showGlobalLoader, hideGlobalLoader } = useGlobalLoader();
+
+             useEffect(() => { // Ensure amount is correctly initialized and updated
+                setAmount(currentBalance > 0 ? currentBalance : '');
+            }, [currentBalance]);
+
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                if (!amount || amount <=0) { addNotification('Payment amount must be positive.', 'warning'); return; }
+                if (amount > currentBalance) { addNotification('Payment amount cannot exceed balance due.', 'warning'); return; }
+
+                setIsLoading(true); showGlobalLoader();
+                try {
+                    await invoiceApiService.recordPayment(invoiceId, { amount: parseFloat(amount), payment_date: paymentDate, payment_method: paymentMethod, notes });
+                    addNotification('Payment recorded successfully!', 'success');
+                    if (onSuccess) onSuccess(); 
+                    onClose();
+                } catch (error) {
+                    addNotification(`Error recording payment: ${error.message}`, 'danger');
+                } finally { setIsLoading(false); hideGlobalLoader(); }
+            };
+
+            return (
+                <form onSubmit={handleSubmit}>
+                    <div className="form-group">
+                        <label htmlFor="paymentAmount">Amount ({currency})</label>
+                        <input type="number" id="paymentAmount" className="form-control" value={amount} onChange={e => setAmount(e.target.value)} min="0.01" step="0.01" max={currentBalance} required />
+                         {currentBalance > 0 && <small>Balance due: {formatCurrency(currentBalance, currency)}</small>}
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="paymentDate">Payment Date</label>
+                        <input type="date" id="paymentDate" className="form-control" value={paymentDate} onChange={e => setPaymentDate(e.target.value)} required />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="paymentMethod">Payment Method</label>
+                        <select id="paymentMethod" className="form-select" value={paymentMethod} onChange={e => setPaymentMethod(e.target.value)}>
+                            <option value="card">Credit/Debit Card</option><option value="bank_transfer">Bank Transfer</option>
+                            <option value="paypal">PayPal</option><option value="stripe">Stripe</option>
+                            <option value="cash">Cash</option><option value="check">Check</option><option value="other">Other</option>
+                        </select>
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="paymentNotes">Notes (optional)</label>
+                        <textarea id="paymentNotes" className="form-control" value={notes} onChange={e => setNotes(e.target.value)}></textarea>
+                    </div>
+                    <div className="modal-footer">
+                        <button type="button" onClick={onClose} className="button button--outline" disabled={isLoading}>Cancel</button>
+                        <button type="submit" className="button button--primary" disabled={isLoading}>
+                            {isLoading && <span className="spinner spinner-inline"></span>} Record Payment
+                        </button>
+                    </div>
+                </form>
+            );
+        };
+
+        // InvoiceDetailModal: Needs to use invoice.balance_due, invoice.amount_paid
+        const InvoiceDetailModal = ({ invoice, onClose, onRefreshNeeded }) => {
+            const { settings } = useSettings();
+            const { addNotification } = useNotifier();
+            const { openModal } = useModal();
+            const { showGlobalLoader, hideGlobalLoader } = useGlobalLoader();
+            const [isProcessing, setIsProcessing] = useState({ pdf: false, email: false });
+            const [payments, setPayments] = useState([]);
+            const [isLoadingPayments, setIsLoadingPayments] = useState(false);
+            const [currentInvoice, setCurrentInvoice] = useState(invoice); // For local updates
+
+            const effectiveCurrency = currentInvoice?.currency || settings.defaultCurrency;
+            
+            // Use values directly from invoice object, assuming they are kept up-to-date
+            const totalPaid = parseFloat(currentInvoice?.amount_paid) || 0;
+            const balanceDue = parseFloat(currentInvoice?.balance_due) || 0;
+
+
+            const fetchPayments = useCallback(async () => {
+                if (!currentInvoice?.id) return;
+                setIsLoadingPayments(true); showGlobalLoader();
+                try {
+                    const response = await invoiceApiService.getPayments(currentInvoice.id);
+                    setPayments(response.data || []);
+                } catch (error) {
+                    addNotification(`Error fetching payments: ${error.message}`, 'danger');
+                } finally { setIsLoadingPayments(false); hideGlobalLoader(); }
+            }, [currentInvoice?.id, addNotification, showGlobalLoader, hideGlobalLoader]);
+
+            useEffect(() => { 
+                setCurrentInvoice(invoice); // Update if prop changes
+                fetchPayments(); 
+            }, [invoice, fetchPayments]);
+
+
+            const refreshInvoiceData = async () => {
+                if(!currentInvoice?.id) return;
+                try {
+                    const updatedInv = await invoiceApiService.getById(currentInvoice.id);
+                    setCurrentInvoice(updatedInv); // Update local state
+                    if(onRefreshNeeded) onRefreshNeeded(); // Notify list to refresh
+                } catch (error) {
+                    addNotification(`Error refreshing invoice: ${error.message}`, 'warning');
+                }
+            };
+
+            const handleAction = async (actionType, apiCall, successMessage) => {
+                setIsProcessing(prev => ({ ...prev, [actionType]: true })); showGlobalLoader();
+                try { await apiCall(); addNotification(successMessage, 'success'); } 
+                catch (error) { addNotification(`Error: ${error.message}`, 'danger'); }
+                finally { setIsProcessing(prev => ({ ...prev, [actionType]: false })); hideGlobalLoader(); }
+            };
+
+            const openRecordPayment = () => {
+                openModal(RecordPaymentModal, `Record Payment for Invoice #${currentInvoice.invoice_number || currentInvoice.id}`, { 
+                    invoiceId: currentInvoice.id, 
+                    currentBalance: balanceDue, // Pass the calculated balance due
+                    currency: effectiveCurrency,
+                    onSuccess: () => { 
+                        fetchPayments(); // Refresh payments list in modal
+                        refreshInvoiceData(); // Refresh invoice data in modal and potentially list
+                    }
+                });
+            };
+
+            if (!currentInvoice) return null;
+            
+            // Determine status based on balance and total amount
+            let displayStatus = currentInvoice.status;
+            if (currentInvoice.status !== 'draft' && currentInvoice.status !== 'cancelled') {
+                if (balanceDue <= 0 && (parseFloat(currentInvoice.total_amount) > 0 || totalPaid > 0) ) displayStatus = 'paid';
+                else if (totalPaid > 0 && balanceDue > 0) displayStatus = 'partially_paid';
+            }
+
+            return (
+                <div className="invoice-detail">
+                    <div className="d-flex justify-between mb-3">
+                        <div>
+                            <h3>From:</h3>
+                            <p><strong>{sanitizeHTML(settings.companyName || 'Your Company')}</strong></p>
+                            {settings.companyAddress && <p style={{whiteSpace: 'pre-wrap'}}>{sanitizeHTML(settings.companyAddress)}</p>}
+                        </div>
+                        <div>
+                            <h3>To:</h3>
+                            <p><strong>{sanitizeHTML(currentInvoice.client_name || 'N/A')}</strong></p>
+                            <p>{sanitizeHTML(currentInvoice.client_email || 'N/A')}</p>
+                            {/* If full client object was fetched with address, display it */}
+                            {/* { (currentInvoice.client?.address || currentInvoice.client_address) && <p style={{whiteSpace: 'pre-wrap'}}>{sanitizeHTML(currentInvoice.client?.address || currentInvoice.client_address)}</p>} */}
+                        </div>
+                    </div>
+                    <h3>Invoice Information</h3>
+                    <p><strong>Invoice #:</strong> {sanitizeHTML(currentInvoice.invoice_number || String(currentInvoice.id).substring(0,8))}</p>
+                    <p><strong>Invoice Date:</strong> {formatDate(currentInvoice.invoice_date)}</p>
+                    <p><strong>Due Date:</strong> {currentInvoice.due_date ? formatDate(currentInvoice.due_date) : 'N/A'}</p>
+                    <p><strong>Status:</strong> <InvoiceStatusBadge status={displayStatus} /></p>
+                    
+                    <h3>Items</h3>
+                    <div className="table-responsive">
+                    <table className="table item-table" aria-label="Invoice items">
+                        <thead>
+                            <tr><th>Description</th><th style={{textAlign: 'right'}}>Qty</th><th style={{textAlign: 'right'}}>Unit Price</th><th style={{textAlign: 'right'}}>Tax (%)</th><th style={{textAlign: 'right'}}>Total</th></tr>
+                        </thead>
+                        <tbody>
+                            {currentInvoice.items?.map((item, index) => {
+                                const itemSubtotal = Number(item.quantity) * Number(item.unit_price);
+                                const taxAmount = itemSubtotal * (Number(item.tax_rate || 0) / 100);
+                                const itemTotal = itemSubtotal + taxAmount;
+                                return ( <tr key={item.id || index}><td>{sanitizeHTML(item.description)}</td><td style={{textAlign: 'right'}}>{item.quantity}</td><td style={{textAlign: 'right'}}>{formatCurrency(item.unit_price, effectiveCurrency)}</td><td style={{textAlign: 'right'}}>{item.tax_rate != null ? `${item.tax_rate}%` : '-'}</td><td style={{textAlign: 'right'}}>{formatCurrency(itemTotal, effectiveCurrency)}</td></tr> );
+                            })}
+                        </tbody>
+                    </table>
+                    </div>
+                    <div className="d-flex justify-end mt-2 gap-3" style={{fontSize: '1.1rem'}}>
+                        <div>Total Amount:</div><div><strong>{formatCurrency(currentInvoice.total_amount, effectiveCurrency)}</strong></div>
+                    </div>
+                    <div className="d-flex justify-end gap-3">
+                        <div>Total Paid:</div><div><strong>{formatCurrency(totalPaid, effectiveCurrency)}</strong></div>
+                    </div>
+                    <div className="d-flex justify-end gap-3" style={{fontWeight:'bold', color: balanceDue > 0 ? 'var(--danger-color)' : 'var(--success-color)'}}>
+                        <div>Balance Due:</div><div><strong>{formatCurrency(balanceDue, effectiveCurrency)}</strong></div>
+                    </div>
+
+                    <h3>Payments Received</h3>
+                    {isLoadingPayments ? <SkeletonLoader count={1} type="listItem" /> : (
+                        payments.length > 0 ? (
+                            <div className="table-responsive">
+                            <table className="table">
+                                <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Notes</th></tr></thead>
+                                <tbody>
+                                    {payments.map(p => (
+                                        <tr key={p.id}>
+                                            <td>{formatDate(p.payment_date)}</td>
+                                            <td>{formatCurrency(p.amount, effectiveCurrency)}</td>
+                                            <td>{sanitizeHTML(p.payment_method)}</td>
+                                            <td>{sanitizeHTML(p.notes || '-')}</td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                            </div>
+                        ) : <p>No payments recorded yet.</p>
+                    )}
+                    {balanceDue > 0 && (
+                        <button onClick={openRecordPayment} className="button button--success mt-2">Record Payment</button>
+                    )}
+
+                    {currentInvoice.notes && ( <><h3>Notes / Terms</h3><p style={{whiteSpace: 'pre-wrap'}}>{sanitizeHTML(currentInvoice.notes)}</p></> )}
+                    <p className="text-muted-color mt-3"><small>Created: {formatDate(currentInvoice.created_at, { dateStyle:'medium', timeStyle:'short'})}</small></p>
+                    {currentInvoice.updated_at && currentInvoice.updated_at !== currentInvoice.created_at && <p className="text-muted-color"><small>Last Updated: {formatDate(currentInvoice.updated_at, { dateStyle:'medium', timeStyle:'short'})}</small></p>}
+
+                    <div className="modal-footer">
+                        <button onClick={() => handleAction('pdf', () => invoiceApiService.downloadInvoicePDF(currentInvoice.id), 'PDF Download started.')} 
+                                className="button button--secondary" disabled={isProcessing.pdf}>
+                            {isProcessing.pdf && <span className="spinner spinner-inline"></span>} Download PDF
+                        </button>
+                        <button onClick={() => handleAction('email', () => invoiceApiService.sendInvoiceEmail(currentInvoice.id), `Invoice email process initiated.`)} 
+                                className="button button--secondary" disabled={isProcessing.email}>
+                            {isProcessing.email && <span className="spinner spinner-inline"></span>} Send Email
+                        </button>
+                        <button onClick={onClose} className="button button--outline">Close</button>
+                    </div>
+                </div>
+            );
+        };
+
+        // ... (SkeletonLoader remains the same)
+        const SkeletonLoader = ({ count = 1, type = 'listItem', className = '' }) => {
+             const items = Array.from({ length: count });
+            if (type === 'listItem') return items.map((_, i) => <div key={i} className={`skeleton skeleton-list-item ${className}`}></div>);
+            if (type === 'card') return ( <div className={`skeleton skeleton-card ${className}`}><div className="skeleton skeleton-title"></div><div className="skeleton skeleton-text"></div><div className="skeleton skeleton-text w-75"></div><div className="skeleton skeleton-text w-50"></div></div> );
+            return null;
+        };
+
+        // ... (Table remains the same)
+        const Table = ({ columns, data, onRowClick, entityName, isLoading, noDataMessage }) => {
+            if (isLoading && (!data || data.length === 0)) return <SkeletonLoader count={5} />; // Show skeleton only if loading and no data yet
+            if (!data || data.length === 0) {
+                return <p className="text-center text-muted-color mt-4 card" style={{padding: '2rem'}}>{noDataMessage || `No ${entityName} found.`}</p>;
+            }
+            return (
+                <div className="table-responsive card">
+                <table className="table">
+                    <thead>
+                        <tr>{columns.map(col => <th key={col.key} style={col.style} scope="col">{col.header}</th>)}</tr>
+                    </thead>
+                    <tbody>
+                        {data.map(item => (
+                            <tr key={item.id} onClick={onRowClick ? () => onRowClick(item) : undefined} style={onRowClick ? {cursor: 'pointer'} : {}}>
+                                {columns.map(col => (
+                                    <td key={`${item.id}-${col.key}`} style={col.style} data-label={col.header}>
+                                        {col.render ? col.render(item) : (item[col.key] != null ? sanitizeHTML(String(item[col.key])) : '-')}
+                                    </td>
+                                ))}
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+                </div>
+            );
+        };
+        
+        // PaginationControl: Adjusted for Firestore's cursor-based pagination (simplified)
+        const PaginationControl = ({ pagination, onPageChange }) => {
+            if (!pagination || pagination.totalPages <= 1) return null;
+            const { currentPage, totalPages, firstVisibleDoc, lastVisibleDoc } = pagination;
+            
+            // Simple next/prev based on existence of docs. Total pages might be an estimate.
+            const canGoPrev = currentPage > 1;
+            const canGoNext = currentPage < totalPages; // Or based on if lastVisibleDoc exists and items returned == limit
+
+            return (
+                <nav aria-label={`${pagination.entityName || 'Item'} list pagination`} className="d-flex justify-center gap-1 mt-4 mb-2">
+                    <button onClick={() => onPageChange(currentPage - 1, 'prev')} disabled={!canGoPrev} className="button button--outline">Previous</button>
+                    <span className="button button--outline" style={{cursor:'default'}}>Page {currentPage} of {totalPages > 0 ? totalPages : 'many'}</span>
+                    <button onClick={() => onPageChange(currentPage + 1, 'next')} disabled={!canGoNext} className="button button--outline">Next</button>
+                </nav>
+            );
+        };
+
+        // ... (InvoiceDashboardSummary remains the same)
+        const InvoiceDashboardSummary = ({ summaryData, currency }) => {
+            if (!summaryData) return <SkeletonLoader count={3} type="card" className="dashboard-summary" />;
+            return (
+                <div className="dashboard-summary">
+                    <div className="summary-card">
+                        <h3 className="summary-card__title">Total Outstanding</h3>
+                        <p className="summary-card__value">{formatCurrency(summaryData.total_outstanding, currency)}</p>
+                    </div>
+                    <div className="summary-card">
+                        <h3 className="summary-card__title">Total Overdue</h3>
+                        <p className="summary-card__value overdue">{formatCurrency(summaryData.total_overdue, currency)}</p>
+                    </div>
+                    <div className="summary-card">
+                        <h3 className="summary-card__title">Paid (Last 30 Days)</h3>
+                        <p className="summary-card__value paid">{formatCurrency(summaryData.paid_last_30_days, currency)}</p>
+                    </div>
+                </div>
+            );
+        };
+        
+        // InvoiceFilters: Adjust for Firestore searching limitations
+        const InvoiceFilters = ({ onFilterChange, initialFilters }) => {
+            const [search, setSearch] = useState(initialFilters.search || '');
+            const [status, setStatus] = useState(initialFilters.status || '');
+            const [searchField, setSearchField] = useState(initialFilters.searchField || 'client_name_searchable'); // Default to client name
+        
+            // Firestore search is tricky. Debouncing might not be as useful if queries are exact or prefix only.
+            const handleSearchChange = (e) => {
+                const newSearchTerm = e.target.value;
+                setSearch(newSearchTerm);
+                onFilterChange({ search: newSearchTerm, searchField: searchField }); // Pass current searchField
+            };
+        
+            const handleStatusChange = (e) => {
+                setStatus(e.target.value);
+                onFilterChange({ status: e.target.value });
+            };
+
+            const handleSearchFieldChange = (e) => {
+                setSearchField(e.target.value);
+                // Trigger filter change if search term exists
+                if (search.trim()) {
+                    onFilterChange({ search: search, searchField: e.target.value });
+                }
+            };
+        
+            return (
+                <div className="filters">
+                    <div className="form-group" style={{flexGrow:1.5, minWidth:'200px'}}>
+                        <label htmlFor="searchInvoice" className="sr-only">Search Invoices</label>
+                        <input type="search" id="searchInvoice" className="form-control" placeholder="Search..." value={search} onChange={handleSearchChange} />
+                    </div>
+                     <div className="form-group" style={{minWidth:'150px'}}>
+                        <label htmlFor="searchFieldInvoice" className="sr-only">Search By</label>
+                        <select id="searchFieldInvoice" className="form-select" value={searchField} onChange={handleSearchFieldChange}>
+                            <option value="client_name_searchable">Client Name</option>
+                            <option value="invoice_number">Invoice #</option>
+                        </select>
+                    </div>
+                    <div className="form-group" style={{minWidth:'180px'}}>
+                        <label htmlFor="filterStatus" className="sr-only">Filter by Status</label>
+                        <select id="filterStatus" className="form-select" value={status} onChange={handleStatusChange}>
+                            <option value="">All Statuses</option>
+                            <option value="draft">Draft</option><option value="pending">Pending</option>
+                            <option value="paid">Paid</option><option value="partially_paid">Partially Paid</option>
+                            <option value="overdue">Overdue</option><option value="cancelled">Cancelled</option>
+                        </select>
+                    </div>
+                     <small className="text-muted-color" style={{flexBasis: '100%', textAlign:'center'}}>Note: Client Name search is prefix-based (e.g., "Jo" for "John"). Invoice # search is exact match.</small>
+                </div>
+            );
+        };
+
+        // --- DashboardPage (Invoices List) ---
+        const DashboardPage = () => {
+            const { user } = useAuth();
+            const { settings } = useSettings();
+            const { addNotification } = useNotifier();
+            const { openModal, closeModal } = useModal();
+            const { showGlobalLoader, hideGlobalLoader } = useGlobalLoader();
+
+            const [invoices, setInvoices] = useState([]);
+            const [clients, setClients] = useState([]); // For InvoiceForm dropdown
+            const [pagination, setPagination] = useState({ currentPage: 1, limit: 10, totalPages:1, lastVisibleDoc: null, firstVisibleDoc: null });
+            const [dashboardSummary, setDashboardSummary] = useState(null);
+            const [isLoading, setIsLoading] = useState({ main: true, clients: true, summary: true });
+            const [filters, setFilters] = useState({ search: '', status: '', page: 1, limit: 10, searchField: 'client_name_searchable' });
+
+            const fetchData = useCallback(async (currentFilters, pageDirection = null) => {
+                if (!user?.uid || !db) return;
+                setIsLoading(prev => ({...prev, main: true})); showGlobalLoader();
+                
+                let queryFilters = { ...currentFilters };
+                if (pageDirection === 'next' && pagination.lastVisibleDoc) {
+                    queryFilters.startAfterDoc = pagination.lastVisibleDoc;
+                }
+                // Firestore's `startBefore` is more complex for previous page, often easier to re-query or manage doc list.
+                // For simplicity, "previous" might just re-fetch with page number if total count is available.
+                // Or, if we cache previous lastVisibleDocs. Here, page number is the primary driver.
+
+                try {
+                    const invoicesResponse = await invoiceApiService.getAll(queryFilters);
+                    setInvoices(invoicesResponse.data || []);
+                    setPagination(invoicesResponse.pagination || { currentPage: 1, limit: currentFilters.limit, totalPages:1, lastVisibleDoc: null, firstVisibleDoc: null });
+                } catch (err) {
+                    addNotification(`Error fetching invoices: ${err.message}`, 'danger');
+                } finally { setIsLoading(prev => ({...prev, main: false})); hideGlobalLoader(); }
+            }, [user?.uid, addNotification, showGlobalLoader, hideGlobalLoader, pagination.lastVisibleDoc]); // pagination.lastVisibleDoc added
+            
+            const fetchSummary = useCallback(async () => {
+                 if (!user?.uid || !db) return;
+                 setIsLoading(prev => ({...prev, summary: true}));
+                 try {
+                    const summaryData = await invoiceApiService.getDashboardSummary();
+                    setDashboardSummary(summaryData);
+                 } catch(err) {
+                    addNotification(`Error fetching summary: ${err.message}`, 'danger');
+                 } finally { setIsLoading(prev => ({...prev, summary: false})); }
+            }, [user?.uid, addNotification]);
+
+            const fetchClientsForForm = useCallback(async () => {
+                if(!user?.uid || !db) return;
+                setIsLoading(prev => ({...prev, clients: true})); 
+                try {
+                    // Fetching all clients for a dropdown can be an issue for very large client lists.
+                    // Consider a typeahead/autocomplete component for large scale.
+                    const clientResponse = await clientApiService.getAll({limit: 1000}); // Fetch up to 1000 for select
+                    setClients(clientResponse.data || []);
+                } catch (err) {
+                    addNotification(`Error fetching clients: ${err.message}`, 'danger');
+                } finally { setIsLoading(prev => ({...prev, clients: false})); }
+            }, [user?.uid, addNotification]);
+
+            useEffect(() => { 
+                fetchData(filters); 
+                fetchSummary();
+                fetchClientsForForm(); 
+            }, [filters]); // Removed fetchData, fetchSummary, fetchClientsForForm from deps as they are stable due to useCallback
+
+            const handleFormSubmit = async (invoiceData, editingId = null) => {
+                showGlobalLoader();
+                try {
+                    // Ensure client_name and client_email are set if client_id is present
+                    if (invoiceData.client_id && !invoiceData.client_name) {
+                        const client = clients.find(c => c.id === invoiceData.client_id);
+                        if (client) {
+                            invoiceData.client_name = client.name;
+                            invoiceData.client_email = client.email;
+                        }
+                    }
+
+                    if (editingId) await invoiceApiService.update(editingId, invoiceData);
+                    else await invoiceApiService.create(invoiceData);
+                    addNotification(`Invoice ${editingId ? 'updated' : 'created'} successfully!`, 'success');
+                    fetchData(filters); fetchSummary(); closeModal(); 
+                } catch (err) {
+                    addNotification(`Error saving invoice: ${err.data?.message || err.message}`, 'danger');
+                    throw err; 
+                } finally { hideGlobalLoader(); }
+            };
+
+            const openInvoiceForm = (invoiceToEdit = null) => {
+                openModal(InvoiceForm, invoiceToEdit ? "Edit Invoice" : "Create New Invoice", {
+                    initialData: invoiceToEdit,
+                    clients: clients,
+                    onSubmit: (data) => handleFormSubmit(data, invoiceToEdit?.id),
+                }, {size: 'large'});
+            };
+
+            const openViewModal = (invoice) => {
+                openModal(InvoiceDetailModal, t('invoice_details_title', {invoiceId: invoice.invoice_number || String(invoice.id).substring(0,8)}), {
+                    invoice: invoice, 
+                    onRefreshNeeded: () => { fetchData(filters); fetchSummary(); }
+                }, {size: 'large'});
+            };
+
+            const handleDeleteInvoice = (invoice) => {
+                openModal(ConfirmationModal, t('confirm.delete.title'), {
+                    message: t('confirm.delete.message', {itemType: `invoice #${invoice.invoice_number || String(invoice.id).substring(0,8)}`}),
+                    onConfirm: async () => {
+                        showGlobalLoader();
+                        try {
+                            await invoiceApiService.delete(invoice.id);
+                            addNotification('Invoice deleted successfully!', 'success');
+                            fetchData(filters); fetchSummary(); closeModal();
+                        } catch (err) { addNotification(`Error deleting invoice: ${err.message}`, 'danger'); }
+                        finally { hideGlobalLoader(); }
+                    },
+                }, {size: 'small'});
+            };
+            
+            const handleFilterChange = useCallback((newFilterValues) => {
+                setFilters(prev => ({...prev, ...newFilterValues, page: 1, startAfterDoc: null })); // Reset page and cursor on filter change
+            }, []);
+
+            const handlePageChange = (newPage, direction) => {
+                setFilters(prev => ({ ...prev, page: newPage }));
+                // fetchData will be called by useEffect due to filters change.
+                // The direction parameter helps fetchData decide if it needs 'startAfterDoc'.
+            };
+            
+            const invoiceColumns = [
+                { key: 'invoice_number', header: 'Invoice #', render: item => sanitizeHTML(item.invoice_number || String(item.id).substring(0,8)) },
+                { key: 'client_name', header: 'Client', render: item => sanitizeHTML(item.client_name || 'N/A') },
+                { key: 'total_amount', header: 'Amount', style: {textAlign: 'right'}, render: item => formatCurrency(item.total_amount, item.currency || settings.defaultCurrency) },
+                { key: 'invoice_date', header: 'Date', render: item => formatDate(item.invoice_date) },
+                { key: 'due_date', header: 'Due Date', render: item => item.due_date ? formatDate(item.due_date) : 'N/A' },
+                { key: 'status', header: 'Status', render: item => {
+                    // More robust status based on amounts if available
+                    let effectiveStatus = item.status;
+                    if (item.status !== 'draft' && item.status !== 'cancelled') {
+                        if (item.balance_due <= 0 && (parseFloat(item.total_amount) > 0 || parseFloat(item.amount_paid) > 0)) effectiveStatus = 'paid';
+                        else if (parseFloat(item.amount_paid) > 0 && item.balance_due > 0) effectiveStatus = 'partially_paid';
+                    }
+                    return <InvoiceStatusBadge status={effectiveStatus} /> 
+                }},
+                { key: 'actions', header: 'Actions', style: {textAlign: 'center', width: '120px'}, render: item => (
+                    <div className="d-flex gap-1 justify-center">
+                        <button onClick={(e) => {e.stopPropagation(); openViewModal(item);}} className="button button--subtle button--icon" aria-label="View"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg></button>
+                        <button onClick={(e) => {e.stopPropagation(); openInvoiceForm(item);}} className="button button--subtle button--icon" aria-label="Edit"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                        <button onClick={(e) => {e.stopPropagation(); handleDeleteInvoice(item);}} className="button button--subtle button--icon text-danger-color" aria-label="Delete"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path><line x1="10" y1="11" x2="10" y2="17"></line><line x1="14" y1="11" x2="14" y2="17"></line></svg></button>
+                    </div>
+                )},
+            ];
+
+            if ((isLoading.main || isLoading.summary) && invoices.length === 0 && !dashboardSummary) {
+                return <div className="container"><SkeletonLoader type="card" className="dashboard-summary"/><SkeletonLoader count={5} /></div>;
+            }
+            
+            return (
+                <div className="container">
+                    <InvoiceDashboardSummary summaryData={dashboardSummary} currency={settings.defaultCurrency} />
+                    <div className="page-header">
+                        <h1 className="page-title">My Invoices</h1>
+                        <button onClick={() => openInvoiceForm()} className="button button--primary" disabled={isLoading.clients}>Create New Invoice</button>
+                    </div>
+                    <InvoiceFilters onFilterChange={handleFilterChange} initialFilters={filters} />
+                    <Table columns={invoiceColumns} data={invoices} entityName="Invoices" isLoading={isLoading.main} noDataMessage="No invoices found." onRowClick={openViewModal} />
+                    <PaginationControl pagination={{...pagination, entityName: 'Invoices'}} onPageChange={handlePageChange} />
+                </div>
+            );
+        };
+
+        // --- ClientsPage ---
+        const ClientsPage = () => {
+            const { user } = useAuth();
+            const { addNotification } = useNotifier();
+            const { openModal, closeModal } = useModal();
+            const { showGlobalLoader, hideGlobalLoader } = useGlobalLoader();
+            const [clients, setClients] = useState([]);
+            const [pagination, setPagination] = useState({ currentPage: 1, limit: 10, totalPages:1, lastVisibleDoc: null });
+            const [isLoading, setIsLoading] = useState(true);
+            const [filters, setFilters] = useState({ search: '', page: 1, limit: 10, searchField: 'name' }); // searchField for clients
+
+            const fetchClientsData = useCallback(async (currentFilters, pageDirection = null) => {
+                if(!user?.uid || !db) return;
+                setIsLoading(true); showGlobalLoader();
+                
+                let queryFilters = { ...currentFilters };
+                if (pageDirection === 'next' && pagination.lastVisibleDoc) {
+                    queryFilters.startAfterDoc = pagination.lastVisibleDoc;
+                }
+
+                try {
+                    const response = await clientApiService.getAll(queryFilters);
+                    setClients(response.data || []);
+                    setPagination(response.pagination || { currentPage: 1, limit: currentFilters.limit, totalPages:1, lastVisibleDoc: null });
+                } catch (err) {
+                    addNotification(`Error fetching clients: ${err.message}`, 'danger');
+                } finally { setIsLoading(false); hideGlobalLoader(); }
+            }, [user?.uid, addNotification, showGlobalLoader, hideGlobalLoader, pagination.lastVisibleDoc]); // pagination.lastVisibleDoc added
+
+            useEffect(() => { fetchClientsData(filters); }, [filters]); // Removed fetchClientsData due to useCallback
+            
+            const handleClientSubmit = async (clientId, clientData) => {
+                showGlobalLoader();
+                try {
+                    if(clientId) await clientApiService.update(clientId, clientData);
+                    else await clientApiService.create(clientData);
+                    addNotification(`Client ${clientId ? 'updated' : 'created'} successfully!`, 'success');
+                    fetchClientsData(filters); closeModal();
+                } catch (error) {
+                    addNotification(`Error saving client: ${error.data?.message || error.message}`, 'danger');
+                    throw error;
+                } finally { hideGlobalLoader(); }
+            };
+
+            const openClientForm = (clientToEdit = null) => {
+                openModal(ClientFormModal, clientToEdit ? "Edit Client" : "Add New Client", {
+                    clientData: clientToEdit,
+                    onSubmit: (id, data) => handleClientSubmit(id, data),
+                });
+            };
+
+            const handleDeleteClient = (client) => {
+                 openModal(ConfirmationModal, t('confirm.delete.title'), {
+                    message: t('confirm.delete.message', {itemType: `client "${client.name}"`}),
+                    onConfirm: async () => {
+                        showGlobalLoader();
+                        try {
+                            await clientApiService.delete(client.id);
+                            addNotification('Client deleted successfully.', 'success');
+                            fetchClientsData(filters); closeModal();
+                        } catch (err) { addNotification(`Error deleting client: ${err.message}`, 'danger'); }
+                        finally { hideGlobalLoader(); }
+                    },
+                }, {size: 'small'});
+            };
+            
+            const handleSearchChange = useCallback((searchTerm) => {
+                setFilters(prev => ({ ...prev, search: searchTerm, page: 1, startAfterDoc: null })); // Reset cursor
+            }, []);
+            
+            const handlePageChange = (newPage, direction) => {
+                setFilters(prev => ({ ...prev, page: newPage }));
+            };
+
+            const clientColumns = [
+                { key: 'name', header: 'Name' }, { key: 'email', header: 'Email' },
+                { key: 'phone', header: 'Phone', render: item => sanitizeHTML(item.phone || '-') },
+                { key: 'address', header: 'Address', render: item => sanitizeHTML(item.address?.substring(0,30) + (item.address?.length > 30 ? '...' : '') || '-') },
+                { key: 'actions', header: 'Actions', style: {textAlign: 'center', width: '100px'}, render: item => (
+                    <div className="d-flex gap-1 justify-center">
+                        <button onClick={() => openClientForm(item)} className="button button--subtle button--icon" aria-label="Edit Client"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></button>
+                        <button onClick={() => handleDeleteClient(item)} className="button button--subtle button--icon text-danger-color" aria-label="Delete Client"><svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></button>
+                    </div>
+                )},
+            ];
+
+            return (
+                <div className="container">
+                    <div className="page-header">
+                        <h1 className="page-title">Clients</h1>
+                        <button onClick={() => openClientForm()} className="button button--primary">Add New Client</button>
+                    </div>
+                    <div className="filters">
+                        <div className="form-group" style={{minWidth: '300px', flexGrow:1}}>
+                             <label htmlFor="clientSearch" className="sr-only">Search Clients</label>
+                            <input type="search" id="clientSearch" className="form-control" placeholder="Search clients by name (prefix)..." onChange={e => handleSearchChange(e.target.value)} />
+                        </div>
+                    </div>
+                    <Table columns={clientColumns} data={clients} entityName="Clients" isLoading={isLoading} noDataMessage="No clients found." />
+                    <PaginationControl pagination={{...pagination, entityName: 'Clients'}} onPageChange={handlePageChange} />
+                </div>
+            );
+        };
+
+        // ... (ClientFormModal remains largely the same)
+        const ClientFormModal = ({ clientData, onSubmit, onClose }) => {
+            const [formData, setFormData] = useState(clientData || { name: '', email: '', address: '', phone: '', notes: '' });
+            const [isLoading, setIsLoading] = useState(false);
+            const [errors, setErrors] = useState({});
+
+            useEffect(() => { setFormData(clientData || { name: '', email: '', address: '', phone: '', notes: '' }); setErrors({}); }, [clientData]);
+
+            const handleChange = e => setFormData({...formData, [e.target.name]: e.target.value });
+            const validate = () => {
+                const newErrors = {};
+                if (!formData.name?.trim()) newErrors.name = "Name is required.";
+                if (!formData.email?.trim()) newErrors.email = "Email is required.";
+                else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) newErrors.email = "Invalid email format.";
+                setErrors(newErrors); return Object.keys(newErrors).length === 0;
+            };
+            const handleSubmit = async e => {
+                e.preventDefault(); if (!validate()) {setErrors(prev => ({...prev, form: "Please correct errors."})); return;}
+                setIsLoading(true);
+                try { await onSubmit(clientData?.id, formData); } 
+                catch (error) { setErrors({form: error.data?.message || error.message || "Failed to save client."}); }
+                finally { setIsLoading(false); }
+            };
+
+            return (
+                 <form onSubmit={handleSubmit}>
+                    {errors.form && <div className="alert alert-danger">{errors.form}</div>}
+                    <div className="form-group">
+                        <label htmlFor="clientFormName">Name <span className="text-danger-color">*</span></label>
+                        <input type="text" id="clientFormName" name="name" className={`form-control ${errors.name ? 'is-invalid' : ''}`} value={formData.name} onChange={handleChange} required disabled={isLoading} />
+                        {errors.name && <div className="invalid-feedback">{errors.name}</div>}
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="clientFormEmail">Email <span className="text-danger-color">*</span></label>
+                        <input type="email" id="clientFormEmail" name="email" className={`form-control ${errors.email ? 'is-invalid' : ''}`} value={formData.email} onChange={handleChange} required disabled={isLoading} />
+                        {errors.email && <div className="invalid-feedback">{errors.email}</div>}
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="clientFormAddress">Address</label>
+                        <textarea id="clientFormAddress" name="address" className="form-control" value={formData.address} onChange={handleChange} disabled={isLoading}></textarea>
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="clientFormPhone">Phone</label>
+                        <input type="tel" id="clientFormPhone" name="phone" className="form-control" value={formData.phone} onChange={handleChange} disabled={isLoading} />
+                    </div>
+                     <div className="form-group">
+                        <label htmlFor="clientFormNotes">Internal Notes</label>
+                        <textarea id="clientFormNotes" name="notes" className="form-control" value={formData.notes} onChange={handleChange} disabled={isLoading} placeholder="Any internal notes about this client..."></textarea>
+                    </div>
+                    <div className="modal-footer">
+                        <button type="button" onClick={onClose} className="button button--outline" disabled={isLoading}>Cancel</button>
+                        <button type="submit" className="button button--primary" disabled={isLoading}>
+                            {isLoading && <span className="spinner spinner-inline"></span>}
+                            {clientData?.id ? "Update Client" : "Save Client"}
+                        </button>
+                    </div>
+                </form>
+            );
+        };
+
+        // ReportsPage: Updated to reflect reliance on Cloud Functions for complex reports
+        const ReportsPage = () => {
+            const { settings } = useSettings(); const { addNotification } = useNotifier();
+            const { user, hasRole } = useAuth();
+            const { showGlobalLoader, hideGlobalLoader } = useGlobalLoader();
+            const [reportData, setReportData] = useState({ revenueByClient: [] });
+            const [isLoading, setIsLoading] = useState(true);
+
+            useEffect(() => {
+                const fetchReportData = async () => {
+                    if (!user?.uid || !db || !hasRole('admin')) { setIsLoading(false); return; }
+                    setIsLoading(true); showGlobalLoader();
+                    try {
+                        // This function now calls a Cloud Function (or does client-side aggregation for demo)
+                        const revenueData = await invoiceApiService.getRevenueByClientReport();
+                        setReportData(prev => ({ ...prev, revenueByClient: revenueData.data || [] }));
+                    } catch (err) { addNotification(`Error fetching report data: ${err.message}`, 'danger'); }
+                    finally { setIsLoading(false); hideGlobalLoader(); }
+                };
+                fetchReportData();
+            }, [user?.uid, hasRole, addNotification, showGlobalLoader, hideGlobalLoader]);
+
+            if (!hasRole('admin')) return <div className="container"><div className="alert alert-danger">{t('permissions.denied')}</div></div>;
+            const revenueColumns = [
+                { key: 'client_name', header: 'Client Name', render: item => sanitizeHTML(item.client_name) },
+                { key: 'invoice_count', header: 'Invoices Sent', style: {textAlign: 'right'}, render: item => item.invoice_count },
+                { key: 'total_revenue', header: 'Total Revenue (Paid)', style: {textAlign: 'right'}, render: item => formatCurrency(item.total_revenue, settings.defaultCurrency) },
+            ];
+            return (
+                <div className="container">
+                    <div className="page-header"><h1 className="page-title">Reports</h1></div>
+                     <div className="alert alert-info">Note: Complex reports like these are best generated via backend Cloud Functions for accuracy and performance with large datasets. This version may use client-side aggregation for demonstration.</div>
+                    <div className="card">
+                        <div className="card-header"><h2 className="card-title">Revenue by Client (Based on Paid Amounts)</h2></div>
+                        <Table columns={revenueColumns} data={reportData.revenueByClient} entityName="Revenue Report" isLoading={isLoading} noDataMessage="No revenue data." />
+                    </div>
+                </div>
+            );
+        };
+
+        // ... (SettingsModal remains largely the same, uses useSettings which is now Firestore-backed)
+        const SettingsModal = ({ onClose }) => {
+            const { settings, updateSettings, isLoadingSettings } = useSettings();
+            const [localSettings, setLocalSettings] = useState(settings);
+            const [isSaving, setIsSaving] = useState(false);
+            const { addNotification } = useNotifier();
+
+            useEffect(() => { setLocalSettings(settings); }, [settings]);
+            
+            const handleChange = e => setLocalSettings(prev => ({...prev, [e.target.name]: e.target.type === 'checkbox' ? e.target.checked : e.target.value }));
+            
+            const handleSubmit = async e => {
+                e.preventDefault(); setIsSaving(true);
+                try {
+                    const payload = { 
+                        ...localSettings,
+                        defaultTaxRate: parseFloat(localSettings.defaultTaxRate) || 0,
+                     };
+                    await updateSettings(payload); 
+                    setTimeout(onClose, 1000);
+                } catch (error) { /* Error handled by updateSettings */ }
+                finally { setIsSaving(false); }
+            };
+
+            if (isLoadingSettings && !Object.keys(localSettings).some(key => localSettings[key] !== defaultSettings[key] && localSettings[key])) {
+                return <div className="spinner" aria-label="Loading settings"></div>;
+            }
+            
+            return (
+                 <form onSubmit={handleSubmit}>
+                    <div className="form-group">
+                        <label htmlFor="s_companyName">Company Name</label>
+                        <input type="text" id="s_companyName" name="companyName" className="form-control" value={localSettings.companyName || ''} onChange={handleChange} />
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="s_companyAddress">Company Address</label>
+                        <textarea id="s_companyAddress" name="companyAddress" className="form-control" value={localSettings.companyAddress || ''} onChange={handleChange}></textarea>
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="s_companyLogoUrl">Company Logo URL</label>
+                        <input type="url" id="s_companyLogoUrl" name="companyLogoUrl" className="form-control" value={localSettings.companyLogoUrl || ''} onChange={handleChange} placeholder="https://example.com/logo.png"/>
+                         {/* For actual file uploads, Firebase Storage would be integrated here. */}
+                    </div>
+                    <div className="form-grid">
+                        <div className="form-group">
+                            <label htmlFor="s_defaultCurrency">Default Currency</label>
+                            <input type="text" id="s_defaultCurrency" name="defaultCurrency" className="form-control" value={localSettings.defaultCurrency || 'USD'} onChange={handleChange} maxLength="3" />
+                        </div>
+                         <div className="form-group">
+                            <label htmlFor="s_defaultTaxRate">Default Tax Rate (%)</label>
+                            <input type="number" id="s_defaultTaxRate" name="defaultTaxRate" className="form-control" value={localSettings.defaultTaxRate == null ? '' : localSettings.defaultTaxRate} onChange={handleChange} min="0" step="0.01" />
+                        </div>
+                    </div>
+                    <div className="form-group">
+                        <label htmlFor="s_invoiceTemplate">Invoice Template</label>
+                        <select id="s_invoiceTemplate" name="invoiceTemplate" className="form-select" value={localSettings.invoiceTemplate || 'default'} onChange={handleChange}>
+                            <option value="default">Default</option><option value="modern">Modern</option><option value="classic">Classic</option>
+                        </select>
+                    </div>
+                    <div className="modal-footer">
+                        <button type="button" onClick={onClose} className="button button--outline" disabled={isSaving}>Cancel</button>
+                        <button type="submit" className="button button--primary" disabled={isSaving || isLoadingSettings}>
+                            {isSaving && <span className="spinner spinner-inline"></span>} Save Settings
+                        </button>
+                    </div>
+                </form>
+            );
+        };
+
+        // LoginPage: Adapted for Firebase Auth
+        const LoginPage = () => {
+            const { login, register, error: authError, loading: authLoading, registrationSuccess, clearError, clearRegistrationSuccess } = useAuth();
+            const [isRegisterMode, setIsRegisterMode] = useState(false);
+            const [formState, setFormState] = useState({ name: '', email: '', password: '', confirmPassword: '' });
+            const [formErrors, setFormErrors] = useState({}); 
+
+            useEffect(() => { 
+                return () => { clearError(); clearRegistrationSuccess(); };
+            }, [isRegisterMode, clearError, clearRegistrationSuccess]);
+
+            useEffect(() => {
+                if (registrationSuccess && !authLoading) { // Ensure not still loading from register process
+                    setIsRegisterMode(false);
+                    setFormState({ name: '', email: '', password: '', confirmPassword: '' }); 
+                    // clearRegistrationSuccess(); // Cleared in AuthProvider or on unmount/mode toggle
+                }
+            }, [registrationSuccess, authLoading]);
+
+            const handleChange = e => {
+                setFormState({ ...formState, [e.target.name]: e.target.value });
+                if (formErrors[e.target.name]) setFormErrors(prev => ({ ...prev, [e.target.name]: null }));
+                if (authError) clearError(); 
+            };
+
+            const validateForm = () => { /* ... (validation logic same as before) ... */ 
+                const errors = {};
+                if (isRegisterMode && !formState.name.trim()) errors.name = "Name is required.";
+                if (!formState.email.trim()) errors.email = "Email is required.";
+                else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formState.email)) errors.email = "Invalid email format.";
+                if (!formState.password) errors.password = "Password is required.";
+                else if (isRegisterMode && formState.password.length < 6) errors.password = "Password must be at least 6 characters.";
+                if (isRegisterMode && formState.password !== formState.confirmPassword) errors.confirmPassword = "Passwords do not match.";
+                setFormErrors(errors);
+                return Object.keys(errors).length === 0;
+            };
+
+            const handleSubmit = async (e) => {
+                e.preventDefault();
+                if (!validateForm()) return;
+                
+                try {
+                    if (isRegisterMode) {
+                        await register(formState.name, formState.email, formState.password);
+                    } else {
+                        await login(formState.email, formState.password);
+                    }
+                } catch (err) { console.error("Auth operation failed on LoginPage:", err); }
+            };
+
+            const toggleMode = () => {
+                setIsRegisterMode(!isRegisterMode);
+                setFormState({ name: '', email: '', password: '', confirmPassword: '' });
+                setFormErrors({});
+                clearError(); 
+                clearRegistrationSuccess();
+            };
+
+            return (
+                <div className="container text-center mt-4 d-flex align-center justify-center" style={{minHeight: 'calc(100vh - 150px)'}}>
+                    <div className="card" style={{maxWidth: '450px', width: '100%'}}>
+                        <h1 className="mb-1" style={{color: 'var(--primary-color)'}}>{t('app.title')}</h1>
+                        <h2 className="h3 mb-3 text-muted-color">{isRegisterMode ? t('register.title') : t('login.title')}</h2>
+                        <p className="text-muted-color mt-2 mb-4">{isRegisterMode ? t('register.prompt') : t('login.prompt')}</p>
+                        
+                        {authError && <div className="alert alert-danger">{authError}</div>}
+                        {registrationSuccess && !isRegisterMode && !authError && <div className="alert alert-success">{t('register.success')}</div>}
+
+                        <form onSubmit={handleSubmit}>
+                            {isRegisterMode && ( /* ... Name input ... */ 
+                                <div className="form-group">
+                                    <label htmlFor="name" className="sr-only">Name</label>
+                                    <input type="text" id="name" name="name" className={`form-control ${formErrors.name ? 'is-invalid' : ''}`} placeholder="Full Name" value={formState.name} onChange={handleChange} required autoComplete="name" />
+                                    {formErrors.name && <div className="invalid-feedback">{formErrors.name}</div>}
+                                </div>
+                            )}
+                            {/* ... Email, Password, Confirm Password inputs same as before ... */}
+                             <div className="form-group">
+                                <label htmlFor="email" className="sr-only">Email</label>
+                                <input type="email" id="email" name="email" className={`form-control ${formErrors.email ? 'is-invalid' : ''}`} placeholder="Email Address" value={formState.email} onChange={handleChange} required autoComplete="email" />
+                                {formErrors.email && <div className="invalid-feedback">{formErrors.email}</div>}
+                            </div>
+                            <div className="form-group">
+                                <label htmlFor="password" className="sr-only">Password</label>
+                                <input type="password" id="password" name="password" className={`form-control ${formErrors.password ? 'is-invalid' : ''}`} placeholder="Password" value={formState.password} onChange={handleChange} required autoComplete={isRegisterMode ? "new-password" : "current-password"} />
+                                {formErrors.password && <div className="invalid-feedback">{formErrors.password}</div>}
+                            </div>
+                            {isRegisterMode && (
+                                <div className="form-group">
+                                    <label htmlFor="confirmPassword" className="sr-only">Confirm Password</label>
+                                    <input type="password" id="confirmPassword" name="confirmPassword" className={`form-control ${formErrors.confirmPassword ? 'is-invalid' : ''}`} placeholder="Confirm Password" value={formState.confirmPassword} onChange={handleChange} required autoComplete="new-password" />
+                                    {formErrors.confirmPassword && <div className="invalid-feedback">{formErrors.confirmPassword}</div>}
+                                </div>
+                            )}
+                            <button type="submit" className="button button--primary button--lg" style={{width: '100%'}} disabled={authLoading}>
+                                {authLoading && <span className="spinner spinner-inline"></span>}
+                                {authLoading ? (isRegisterMode ? t('register.loading') : t('login.loading')) : (isRegisterMode ? t('register.button') : t('login.button'))}
+                            </button>
+                        </form>
+                        <p className="mt-4">
+                            <button onClick={toggleMode} className="button button--link">
+                                {isRegisterMode ? t('register.existing_account') : t('login.no_account')}
+                            </button>
+                        </p>
+                         <p className="mt-3 text-muted-color"><small>This system uses Firebase for authentication and data storage. Ensure Firebase is configured.</small></p>
+                          <p className="mt-1 text-muted-color"><small>IMPORTANT: Replace Firebase config placeholders in the script!</small></p>
+                    </div>
+                </div>
+            );
+        };
+
+        // --- Simple SPA Router ---
+        // ... (SimpleRouter remains the same logic, relies on AuthProvider)
+        const SimpleRouter = () => {
+            const [route, setRoute] = useState(window.location.hash.substring(1).split('?')[0] || '/dashboard');
+            useEffect(() => {
+                const handleHashChange = () => setRoute(window.location.hash.substring(1).split('?')[0] || '/dashboard');
+                window.addEventListener('hashchange', handleHashChange);
+                if ((window.location.hash === '' || window.location.hash === '#') && auth && auth.currentUser) { // Redirect to dashboard if logged in
+                    window.location.hash = '#/dashboard';
+                } else if ((window.location.hash === '' || window.location.hash === '#') && (!auth || !auth.currentUser)) { // Redirect to login if not logged in
+                     window.location.hash = '#/login';
+                }
+                else { handleHashChange(); } // Handle current hash
+                return () => window.removeEventListener('hashchange', handleHashChange);
+            }, []); // Empty dependency array to run once on mount
+            
+            const { isAuthenticated, loading: authLoading, user } = useAuth();
+
+            useEffect(() => { // Effect to redirect based on auth state
+                if (!authLoading) {
+                    if (isAuthenticated && (route === '/login' || route === '/register')) {
+                        window.location.hash = '#/dashboard';
+                    } else if (!isAuthenticated && route !== '/login' && route !== '/register') {
+                        window.location.hash = '#/login';
+                    }
+                }
+            }, [isAuthenticated, authLoading, route]);
+
+
+            if (authLoading  || (!db && route !== '/login' && route !== '/register') ) { // Also wait for db init if not on login/register
+                return <div className="spinner" aria-label="Initializing application" style={{position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)'}}></div>;
+            }
+            
+            // Public routes
+            if (route === '/login') return <LoginPage />;
+            if (route === '/register') return <LoginPage />; // LoginPage handles register mode
+
+            // Protected routes
+            if (!isAuthenticated) {
+                 // Should be caught by useEffect redirect, but as a fallback:
+                return <div className="spinner" aria-label="Redirecting..." style={{position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)'}}></div>;
+            }
+            
+            switch (route) {
+                case '/dashboard': case '/': return <DashboardPage />;
+                case '/clients': return <ClientsPage />;
+                case '/reports': return <ReportsPage />;
+                default: { // Fallback to dashboard for authenticated users
+                    if (route !== '/dashboard' && route !== '/') { window.location.hash = '#/dashboard'; }
+                    return <DashboardPage />; 
+                }
+            }
+        };
+
+
+        // --- Main App Component ---
+        function App() {
+            const isDev = (typeof process !== 'undefined' && process.env.NODE_ENV === 'development');
+
+            // A note about Firestore Security Rules
+            console.info(
+                "Reminder: Ensure your Firestore Security Rules are set up correctly in the Firebase console. " +
+                "For this app structure, rules should typically restrict data access to the authenticated user (e.g., match /users/{userId}/{document=**} { allow read, write: if request.auth.uid == userId; })."
+            );
+            
+            return (
+                <ReactErrorBoundary isDevelopment={isDev}>
+                    <GlobalLoadingProvider>
+                    <NotificationProvider>
+                        <ModalProvider>
+                            <AuthProvider>
+                                <SettingsProvider> 
+                                    <AppHeader />
+                                    <main className="main-content" role="main"><SimpleRouter /></main>
+                                    <footer className="app-footer" role="contentinfo"><p>&copy; {new Date().getFullYear()} {t('app.title')}. All rights reserved.</p><p>Powered by Firebase</p></footer>
+                                </SettingsProvider>
+                            </AuthProvider>
+                        </ModalProvider>
+                    </NotificationProvider>
+                    </GlobalLoadingProvider>
+                </ReactErrorBoundary>
+            );
+        }
+        
+        if (typeof process === 'undefined') { window.process = { env: { NODE_ENV: 'production' } }; }
+        const rootElement = document.getElementById('root');
+        if (rootElement) {
+            // Check if Firebase was initialized before rendering
+            if (firebaseApp && auth && db) {
+                const root = ReactDOM.createRoot(rootElement);
+                root.render( <React.StrictMode><App /></React.StrictMode> );
+            } else if (!rootElement.innerHTML.includes("Application Critical Error")) { // Don't overwrite critical Firebase init error
+                 rootElement.innerHTML = '<div style="padding: 20px; text-align: center; color: red; font-family: sans-serif;"><h1>Application Error</h1><p>Core services did not initialize correctly. The application cannot be rendered.</p></div>';
+            }
+        } else {
+            console.error("Root element with ID 'root' not found in the DOM. Application cannot start.");
+            document.body.innerHTML = '<div style="padding: 20px; text-align: center; color: red; font-family: sans-serif;"><h1>Application Error</h1><p>Root HTML element not found. The application cannot be rendered.</p></div>';
+        }
+
+    </script>
+</body>
+</html>
